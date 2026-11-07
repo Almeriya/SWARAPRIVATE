@@ -32,6 +32,32 @@ class ProcessTests(unittest.TestCase):
     def test_timeout_keeps_124_and_cleans_group(self):
         result=self.invoke('import time;time.sleep(30)',timeout=.2)
         self.assertEqual(result,124);self.assertTrue(result.cleanup['success']);self.assertEqual(result.cleanup['remaining'],[])
+
+    def test_periodic_snapshot_timeout_with_verified_cleanup(self):
+        with tempfile.TemporaryDirectory() as directory:
+            sampled = Path(directory) / 'sampled'
+            source = f'import pathlib,time\nwhile not pathlib.Path({str(sampled)!r}).exists(): time.sleep(.01)'
+
+            def miss_first_sample(group):
+                if not sampled.exists():
+                    sampled.touch()
+                    raise subprocess.TimeoutExpired('ps', 5)
+                return snapshot(group)
+
+            with patch('processes.snapshot', side_effect=miss_first_sample):
+                result = self.invoke(source, timeout=10)
+        self.assertEqual(result, 0)
+        self.assertTrue(result.cleanup['success'])
+        self.assertEqual(result.cleanup['sampling_snapshot_timeouts'], 1)
+        self.assertEqual(result.cleanup['remaining'], [])
+
+    def test_cleanup_snapshot_timeout_is_still_a_failure(self):
+        with patch('processes.snapshot', side_effect=subprocess.TimeoutExpired('ps', 5)):
+            result = self.invoke('pass')
+        self.assertEqual(result, 0)
+        self.assertFalse(result.cleanup['success'])
+        self.assertIn({'operation': 'snapshot', 'error': 'TimeoutExpired'}, result.cleanup['errors'])
+
     def test_hung_child_surviving_parent_requires_kill(self):
         source='import os,signal,time\nif os.fork()==0:\n signal.signal(signal.SIGTERM,signal.SIG_IGN);time.sleep(30)\nelse:\n time.sleep(.1)'
         result=self.invoke(source)

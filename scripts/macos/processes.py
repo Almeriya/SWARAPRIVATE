@@ -85,8 +85,9 @@ def run_process(argv, *, cwd, env, stdout, timeout):
     report={'success':False,'errors':[],'signals':[],'remaining':[],
             'timed_out':False,'cancelled':False,'peak_group_rss_kib_sampled':0,
             'peak_session_rss_kib_sampled':0,
-            'peak_compiler_rss_kib_sampled':0,'ownership':'RESERVED_UNREAPED_SESSION_LEADER'}
-    def observe():
+            'peak_compiler_rss_kib_sampled':0,'sampling_snapshot_timeouts':0,
+            'ownership':'RESERVED_UNREAPED_SESSION_LEADER'}
+    def observe(*, sampling=False):
         try:
             members=snapshot(process.pid)
             report['peak_group_rss_kib_sampled']=max(report['peak_group_rss_kib_sampled'],sum(m['rss_kib'] for m in members if m['pgid']==process.pid))
@@ -94,7 +95,10 @@ def run_process(argv, *, cwd, env, stdout, timeout):
             report['peak_compiler_rss_kib_sampled']=max([report['peak_compiler_rss_kib_sampled']]+[m['rss_kib'] for m in members if 'clang' in Path(m['command']).name or Path(m['command']).name in ('cc1plus','cc1')])
             return [m for m in members if m['pid']!=process.pid and not m['state'].startswith('Z')]
         except (OSError,subprocess.SubprocessError,ValueError) as error:
-            report['errors'].append({'operation':'snapshot','error':type(error).__name__})
+            if sampling and isinstance(error, subprocess.TimeoutExpired):
+                report['sampling_snapshot_timeouts'] += 1
+            else:
+                report['errors'].append({'operation':'snapshot','error':type(error).__name__})
             return None
     def group_signal(sig):
         # Never poll()/wait() the supervisor before the last signal: reaping its
@@ -135,8 +139,8 @@ def run_process(argv, *, cwd, env, stdout, timeout):
                     if 'exit_code' in message:
                         if not ready:raise RuntimeError('Missing supervisor ownership handshake')
                         original=message['exit_code'];done=True
-            if time.monotonic()>=next_sample:
-                observe();next_sample=time.monotonic()+1
+            if not done and time.monotonic()>=next_sample:
+                observe(sampling=True);next_sample=time.monotonic()+1
     except BaseException as error:
         cancelled=error;report['cancelled']=True
         original=130 if isinstance(error,KeyboardInterrupt) else 128+error.signum if isinstance(error,ProcessCancelled) else 125
