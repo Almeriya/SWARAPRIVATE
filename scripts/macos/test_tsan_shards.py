@@ -3,12 +3,13 @@
 import json
 from pathlib import Path
 import shutil
+import subprocess
 import tempfile
 import unittest
 import xml.etree.ElementTree as ET
 
 from policy import BASE_SHA, JUCE_SHA, PRODUCTION_PARITY, REPOSITORY, digest
-from tsan_shards import INPUT_FILES, RUNTIME_LOGS, SHARD_B, aggregate, select_shards
+from tsan_shards import INPUT_FILES, RUNTIME_LOGS, SHARD_B, aggregate, apply_workflow_retry_timeout, select_shards
 
 
 def full_inventory():
@@ -44,6 +45,23 @@ class TSanShardSelectionTests(unittest.TestCase):
         for profile, architecture in (('asan-ubsan', 'x86_64'), ('tsan', 'arm64')):
             with self.assertRaisesRegex(RuntimeError, 'requires Intel TSan'):
                 select_shards(full_inventory(), profile, architecture)
+
+    def test_retry_changes_only_the_named_test_timeout_in_ctest(self):
+        with tempfile.TemporaryDirectory() as directory:
+            build = Path(directory)
+            (build / 'Tests').mkdir()
+            (build / 'CTestTestfile.cmake').write_text('subdirs("Tests")\n')
+            (build / 'Tests/CTestTestfile.cmake').write_text(
+                'add_test(SwaraXTWorkflowTests "cmake" "-E" "true")\n'
+                'add_test(OtherTest "cmake" "-E" "true")\n'
+                'set_tests_properties(SwaraXTWorkflowTests OtherTest PROPERTIES TIMEOUT 300)\n')
+            before = json.loads(subprocess.check_output(['ctest', '--test-dir', build, '--show-only=json-v1']))
+            after = apply_workflow_retry_timeout(build, before)
+            timeouts = {test['name']: prop['value'] for test in after['tests']
+                        for prop in test['properties'] if prop['name'] == 'TIMEOUT'}
+            self.assertEqual(timeouts, {'SwaraXTWorkflowTests': 600, 'OtherTest': 300})
+            with self.assertRaisesRegex(RuntimeError, 'Unexpected original workflow test timeout'):
+                apply_workflow_retry_timeout(build, after)
 
 
 class TSanAggregateTests(unittest.TestCase):

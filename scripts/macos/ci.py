@@ -337,6 +337,10 @@ class Campaign(PublicInfrastructure):
         listing = json.loads(subprocess.check_output(['ctest', '--test-dir', build, '--show-only=json-v1'], text=True, timeout=60))
         require(len(listing['tests']) > 50, "Qualification invariant: len(listing['tests']) > 50")
         require(not any(p['name'] == 'DISABLED' and p['value'] for t in listing['tests'] for p in t['properties']), 'Disabled tests require explicit review')
+        if getattr(self.args, 'retry_tsan_shard_a', False):
+            from tsan_shards import apply_workflow_retry_timeout
+            listing = apply_workflow_retry_timeout(build, listing)
+            self.report['ctest_timeout_override'] = {'test': 'SwaraXTWorkflowTests', 'from_seconds': 300, 'to_seconds': 600}
         inventory = self.root / 'ctest-inventory.json'
         inventory.write_text(json.dumps(listing, indent=2) + '\n')
         self.report['test_count'] = len(listing['tests'])

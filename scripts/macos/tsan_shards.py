@@ -2,10 +2,12 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 """Select and independently verify the two Intel TSan regression shards."""
 import argparse
+import copy
 import json
 import os
 from pathlib import Path
 import shlex
+import subprocess
 import xml.etree.ElementTree as ET
 
 from policy import BASE_SHA, JUCE_SHA, PRODUCTION_PARITY, REPOSITORY, digest, require, revision
@@ -18,6 +20,22 @@ TOTAL = 136
 TSAN_FLAGS = {'-fsanitize=thread', '-fno-omit-frame-pointer'}
 INPUT_FILES = ('ctest-inventory.json', 'compile-commands.json')
 RUNTIME_LOGS = ('ctest.log', 'actual-AU.log', 'actual-VST3.log')
+
+
+def apply_workflow_retry_timeout(build, inventory):
+    """Extend the one timed-out test in the generated CTest files."""
+    expected = copy.deepcopy(inventory)
+    name = 'SwaraXTWorkflowTests'
+    properties = [prop for test in expected['tests'] if test['name'] == name
+                  for prop in test['properties'] if prop['name'] == 'TIMEOUT']
+    require(len(properties) == 1 and properties[0]['value'] == 300, 'Unexpected original workflow test timeout')
+    properties[0]['value'] = 600
+    with (build / 'Tests/CTestTestfile.cmake').open('a') as stream:
+        stream.write(f'\nset_tests_properties({name} PROPERTIES TIMEOUT 600)\n')
+    observed = json.loads(subprocess.check_output(
+        ['ctest', '--test-dir', build, '--show-only=json-v1'], text=True, timeout=60))
+    require(observed == expected, 'CTest retry changed more than the workflow test timeout')
+    return observed
 
 
 def select_shards(inventory, profile, architecture):
