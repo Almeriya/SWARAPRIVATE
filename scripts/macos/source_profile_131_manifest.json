@@ -220,5 +220,11 @@
     "Tests/Filter/DualSvfIntegrationAuditMain.cpp": "a9a4cab9dd087e040d84b668d242821ce340f09a",
     "Tests/avrlib_hd/UpperRegisterOscillatorTestsMain.cpp": "fc702fb3cb38b6ccd04d0adff822326606d9191b",
     "Tests/Parity/CurrentAudioGoldens.h": "6bd4da7c2292a3a62aee6e6478da402d4c5815da"
+  },
+  "removed_source": {
+    "Source/Engine/Filter/Circuit/ActiveLoadPole.h": "845cb031bd6bd6b2de390828c8e31a31ae300510",
+    "Source/Engine/Filter/Circuit/PassiveLoadPole.h": "88d6aa30fc1805065780629b7aee03a05ad38f1c",
+    "Source/Engine/Filter/Circuit/ResonanceNetwork.h": "d14d7c87c6faf2808138c353f92b967c57c04b7e",
+    "Source/Engine/ShruthiPort/include_first/avrlib_hd/filter.h": "0ee0d2069c10f525bacf88bfbef83a701c9baee1"
   }
 }

@@ -22,6 +22,13 @@ _APPLE_EXCEPTIONS = {
     'Source/Engine/SampleRate/PolyphaseFirResampler.h',
 }
 
+_EXPECTED_REMOVED_SOURCE = {
+    'Source/Engine/Filter/Circuit/ActiveLoadPole.h': '845cb031bd6bd6b2de390828c8e31a31ae300510',
+    'Source/Engine/Filter/Circuit/PassiveLoadPole.h': '88d6aa30fc1805065780629b7aee03a05ad38f1c',
+    'Source/Engine/Filter/Circuit/ResonanceNetwork.h': 'd14d7c87c6faf2808138c353f92b967c57c04b7e',
+    'Source/Engine/ShruthiPort/include_first/avrlib_hd/filter.h': '0ee0d2069c10f525bacf88bfbef83a701c9baee1'
+}
+
 
 def _check(ok, reason):
     if not ok:
@@ -42,13 +49,19 @@ def validate_tree(base, current, manifest):
     for path, sha in protected.items():
         _check(path not in expected or expected[path] != sha, 'Non-exception: ' + path)
         expected[path] = sha
+    removed = manifest.get('removed_source')
+    _check(removed == _EXPECTED_REMOVED_SOURCE, 'unreviewed source deletion inventory')
+    _check(set(removed).isdisjoint(expected), 'retired source still expected upstream')
+    for path, old_sha in removed.items():
+        _check(base.get(path) == old_sha, 'retired source baseline mismatch: ' + path)
+        _check(path not in current, 'retired source restored: ' + path)
     actual_source = {p: sha for p, sha in current.items() if p.startswith('Source/')}
     _check(actual_source == expected, 'Source/ blob manifest mismatch')
     for path, sha in manifest['transport_tests'].items():
         _check(current.get(path) == sha, 'migrated test mismatch: ' + path)
     for path, sha in manifest['protected_mac_tests'].items():
         _check(current.get(path) == sha, 'protected Mac test/golden mismatch: ' + path)
-    allowed = set(expected) | set(manifest['transport_tests']) | _ALLOWED_META
+    allowed = set(expected) | set(manifest['transport_tests']) | set(removed) | _ALLOWED_META
     for p in set(base) | set(current):
         if base.get(p) != current.get(p):
             _check(p in allowed, 'unreviewed repository difference: ' + p)
