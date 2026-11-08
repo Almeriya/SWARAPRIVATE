@@ -76,7 +76,6 @@ class SwaraXtEngine {
     static constexpr int kAudioBlockSize = 40;
     static constexpr int kMaxPendingMidi = 512;
 
-#if SWARAXT_ENABLE_SHRUTHI_DEBUG_TAPS
 #if defined(SWARAXT_ENABLE_MANUAL_SWITCH_TESTS)
     struct ManualSwitchSample {
         float raw = 0, gain = 1, output = 0;
@@ -85,6 +84,7 @@ class SwaraXtEngine {
         bool processed = false;
     };
 #endif
+#if SWARAXT_ENABLE_SHRUTHI_DEBUG_TAPS
     struct DebugBlockCapture {
         float rawOsc1[kAudioBlockSize] {};
         float rawOsc2[kAudioBlockSize] {};
@@ -336,6 +336,7 @@ class SwaraXtEngine {
     };
 
     void renderInternalBlock();
+    void fillInternalQueue(bool checkDormant);
     float processSelectedFilterSample(float mixer, float vcaTarget) noexcept;
     float selectedFilterVca() const noexcept;
     bool selectedFilterTailActive() const noexcept;
@@ -381,6 +382,7 @@ class SwaraXtEngine {
     void flushSequencerMidi(juce::MidiBuffer& output, int numSamples) noexcept;
     void releaseHeldSequencerNotes(uint64_t sample) noexcept;
     void forceFlushSequencerMidiRelease(uint64_t sample) noexcept;
+    void retryHeldSequencerMidiRelease() noexcept;
     int sequencerMidiLeadSamples() const noexcept;
     int outputMidiChannel() const noexcept;
     uint8_t heldOutputChannel(uint8_t external) const noexcept;
