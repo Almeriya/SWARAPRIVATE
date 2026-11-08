@@ -166,6 +166,11 @@ def verify_dual_integration_selection(source):
 
 def compare_public(source, baseline, checkout_sha, base_sha):
     require(base_sha == BASE_SHA, 'Approved SW2 base required')
+    # Separate reviewed 1.3.1 source profile; retain original 1.3.0 admission below.
+    if (Path(source) / 'Source/Ui/SwaraXtPanelWidgets.cpp').exists():
+        from source_profile_131 import compare_source_131
+        return compare_source_131(source, checkout_sha, base_sha, git_tree,
+                                  BASE_SHA, PRODUCTION_PARITY, HOST_ARITHMETIC)
     before, after = git_tree(source, BASE_SHA), git_tree(source, checkout_sha)
     differences = [p for p in sorted(set(before) | set(after)) if before.get(p) != after.get(p)]
     parser_paths = {'Source/Plugin/SwaraXtParameterLayout.cpp', 'Source/Tuning/TuningTable.cpp', 'Source/Tuning/RealFromChars.h', 'REUSE.toml', 'LICENSES/MIT.txt'}
