@@ -1,11 +1,12 @@
 # SPDX-FileCopyrightText: 2026 MontroneDSP
 # SPDX-License-Identifier: GPL-3.0-or-later
 name: macOS AU and VST3 qualification
-run-name: SWARA XT 1.3.0 macOS ${{ github.sha }}
+run-name: SWARA XT 1.3.1 macOS ${{ github.sha }}
 'on':
   push:
     branches:
     - ci/macos-130-qualification
+    - release/macos-131-qualification
   workflow_dispatch:
     inputs:
       mode:
@@ -189,6 +190,29 @@ jobs:
         "$BASE_SHA" --mode "$EXECUTION_MODE" --arch x86_64 --root "$RUNNER_TEMP/swara-universal"
       env:
         RUNNER_ENVIRONMENT: ${{ runner.environment }}
+    - name: Build and validate unnotarized 1.3.1 ZIP/PKG and corresponding source
+      shell: bash
+      run: >-
+        python3 scripts/macos/package_release_candidate.py
+        --repo-root "$GITHUB_WORKSPACE"
+        --candidate-dir "$RUNNER_TEMP/swara-universal/unsigned-universal"
+        --juce-dir "$RUNNER_TEMP/swara-universal/JUCE"
+        --source-sha "$REVIEWED_SHA"
+        --version 1.3.1
+        --output-dir "$RUNNER_TEMP/swara-universal/packages"
+    - name: Public unnotarized QA distribution packages
+      if: always()
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+      with:
+        name: macos-qa-packages-${{ github.sha }}-${{ github.run_attempt }}
+        path: |
+          ${{ runner.temp }}/swara-universal/packages/SwaraXT-macOS-Universal-v1.3.1.zip
+          ${{ runner.temp }}/swara-universal/packages/SwaraXT-macOS-Universal-v1.3.1.pkg
+          ${{ runner.temp }}/swara-universal/packages/SwaraXT-macOS-Universal-v1.3.1-corresponding-source.tar.gz
+          ${{ runner.temp }}/swara-universal/packages/SHA256SUMS
+          ${{ runner.temp }}/swara-universal/packages/package-qa-manifest.json
+        if-no-files-found: warn
+        retention-days: 7
     - name: Public unqualified universal candidate
       uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
       with:

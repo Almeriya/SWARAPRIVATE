@@ -28,6 +28,9 @@ class SourceProfile131Tests(unittest.TestCase):
             cls.base.setdefault(p, 'baseline-sha')
             cls.current[p] = 'reviewed-sha'
         cls.base['third_party/shruthi-1'] = cls.current['third_party/shruthi-1'] = 'pinned'
+        for path, blob in cls.manifest['release_metadata'].items():
+            cls.base.setdefault(path, 'historical-blob')
+            cls.current[path] = blob
 
     def test_approved_overlay_only(self):
         result = validate_tree(self.base, self.current, self.manifest)
@@ -97,6 +100,27 @@ class SourceProfile131Tests(unittest.TestCase):
             missing['removed_source'].pop(next(iter(missing['removed_source'])))
             with self.assertRaisesRegex(RuntimeError, 'unreviewed source deletion inventory'):
                 validate_tree(self.base, self.current, missing)
+
+    def test_reviewed_release_metadata(self):
+        self.assertEqual(len(self.manifest['release_metadata']), 13)
+        self.assertEqual(self.current['CMakeLists.txt'],
+                         self.manifest['release_metadata']['CMakeLists.txt'])
+        report = validate_tree(self.base, self.current, self.manifest)
+        self.assertEqual(report['native_audio_reference'], 'REVIEW_REQUIRED')
+        for path in self.manifest['release_metadata']:
+            with self.subTest(path=path):
+                modified = dict(self.current)
+                modified[path] = '0' * 40
+                with self.assertRaisesRegex(RuntimeError, 'reviewed release metadata changed'):
+                    validate_tree(self.base, modified, self.manifest)
+        mutated = copy.deepcopy(self.manifest)
+        mutated['release_metadata']['packaging/macos/unreviewed.sh'] = '0' * 40
+        with self.assertRaisesRegex(RuntimeError, 'unreviewed release metadata'):
+            validate_tree(self.base, self.current, mutated)
+        changed = dict(self.current)
+        changed['packaging/macos/unreviewed.sh'] = '0' * 40
+        with self.assertRaisesRegex(RuntimeError, 'unreviewed repository difference'):
+            validate_tree(self.base, changed, self.manifest)
 
     def test_negative_mutations(self):
         cases = [
