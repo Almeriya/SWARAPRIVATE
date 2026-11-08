@@ -1,4 +1,22 @@
-# SWARA XT 1.3.0 macOS engineering
+# SWARA XT macOS engineering and qualification
+
+## Active 1.3.1 Universal AU/VST3 candidate
+
+The active macOS candidate uses product version 1.3.1 on the previously merged
+SWARAXT 1.3.1 source overlay, with five SHA-pinned Apple exceptions and four
+reviewed retired-filter header deletions. It targets x86_64 and arm64,
+macOS 11.0 minimum, Xcode 16.4, and JUCE 9.0.1. The full workflow remains
+`macos-qualification.yml` with `mode=full`. Development/CI bundles are
+ad-hoc sealed, **not Developer ID signed or notarized**.
+
+The source policy checks source identity and version independently of any
+macOS audio-reference authority. The existing `native_reference.py` gate
+remains fail-closed: **REFERENCE AUTHORITY REVIEW REQUIRED**. Neither a
+successful source overlay check, a built bundle, nor a QA installer qualifies
+the macOS audio oracle. See [QA packaging](../../packaging/macos/README.md).
+
+## Historical 1.3.0 engineering baseline (retained evidence)
+
 
 This public infrastructure adapts the Apple CI design reviewed at reference
 revision 53a1e9fd16dacbac5b7b16a7e13594b540909a4e. It imports no reference history

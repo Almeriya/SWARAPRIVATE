@@ -172,6 +172,8 @@ def load_tests(loader, tests, pattern):
     tests.addTests(loader.loadTestsFromModule(test_tsan_shards))
     import test_source_profile_131
     tests.addTests(loader.loadTestsFromModule(test_source_profile_131))
+    import test_package_release_candidate
+    tests.addTests(loader.loadTestsFromModule(test_package_release_candidate))
     import test_policy
     import test_native_reference
     tests.addTests(loader.loadTestsFromModule(test_native_reference))

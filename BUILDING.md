@@ -1,6 +1,7 @@
 # Building Swara XT
 
-The current source and package metadata target **1.3.0 (unreleased)**. The latest
+The macOS product metadata targets **1.3.1 (unqualified release candidate)**.
+The historical 1.3.0 qualification evidence remains unchanged. The latest
 published release remains [1.2.3](https://github.com/montronedsp/SWARAXT/releases/tag/v1.2.3).
 
 ## Requirements
@@ -90,12 +91,26 @@ Or:
 
 ## macOS
 
-macOS source builds include VST3 and AU, plus Standalone when enabled.
+For the reviewed macOS release candidate, build **only Universal AU and VST3**
+with Xcode 16.4 and pinned JUCE 9.0.1. Standalone and Skin Editor are disabled.
 
 ```bash
-cmake --preset mac-release
-cmake --build --preset mac-release
+cmake -S . -B build/mac-131-universal -G Ninja \
+  -DCMAKE_BUILD_TYPE=Release \
+  -DCMAKE_OSX_ARCHITECTURES='x86_64;arm64' \
+  -DCMAKE_OSX_DEPLOYMENT_TARGET=11.0 \
+  -DSWARAXT_JUCE_DIR=/absolute/path/to/JUCE-9.0.1 \
+  -DSWARA_BUILD_STANDALONE=OFF \
+  -DSWARA_BUILD_SKIN_EDITOR=OFF \
+  -DSWARA_BUILD_TESTS=OFF
+cmake --build build/mac-131-universal --target SwaraXT_AU SwaraXT_VST3
 ```
+
+The full CI campaign uses [`macos-qualification.yml`](.github/workflows/macos-qualification.yml)
+with `mode=full`, and the same immutable universal candidate is used for
+native host checks and [unnotarized QA packaging](packaging/macos/README.md).
+The existing native audio-reference authority remains fail-closed.
+
 
 ## Tests
 

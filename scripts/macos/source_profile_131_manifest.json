@@ -226,5 +226,20 @@
     "Source/Engine/Filter/Circuit/PassiveLoadPole.h": "88d6aa30fc1805065780629b7aee03a05ad38f1c",
     "Source/Engine/Filter/Circuit/ResonanceNetwork.h": "d14d7c87c6faf2808138c353f92b967c57c04b7e",
     "Source/Engine/ShruthiPort/include_first/avrlib_hd/filter.h": "0ee0d2069c10f525bacf88bfbef83a701c9baee1"
+  },
+  "release_metadata": {
+    "CMakeLists.txt": "b350b53b9bbcca3fc2ea85e82db167bbaa8ed50e",
+    "README.md": "ba03378ad6df4b091371bbd2f8345fe2a607869a",
+    "BUILDING.md": "3d993804a9e23d8f5a253455b747bb92883472ee",
+    "CHANGELOG.md": "c7fb8a0dd18147a73ecad620df178039b99576ba",
+    "docs/macos/QUALIFICATION.md": "c74c405d847189424c67b7d8e5bdd574d92eb9a8",
+    "packaging/SOURCE.txt": "dd718cfedcd58590b79b69003333cdcef4841bb8",
+    ".github/workflows/macos-qualification.yml": "ca822fda5de7a84475f6b51eda1f5cc6521bed56",
+    "scripts/macos/test_ci.py": "0e267ce9511076841aadfa2585a119feb256c15a",
+    "scripts/macos/package_release_candidate.py": "f0b3773f90160827e718b8db6b2f3b09c5331b4f",
+    "scripts/macos/test_package_release_candidate.py": "9622cdb9625698a9fe4697fea1aad1b9b2aa6615",
+    "packaging/macos/README.txt": "b31a02eddc9e2b12008be4491083cba237a45681",
+    "packaging/macos/README.md": "7f4637a632196425cbc8381e9e6935a80af42151",
+    "resources/Skin/Examples/README.md": "46bc2045eb9bafc77fd6a32c4d64d82fae478e5e"
   }
 }

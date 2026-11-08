@@ -1,6 +1,16 @@
 # Changelog
 
-## 1.3.0 — Unreleased
+## 1.3.1 — macOS release candidate (unqualified)
+
+- Align active macOS AU/VST3 and source-provenance version to 1.3.1.
+- Prepare Universal arm64/x86_64 QA ZIP and system installer PKG, plus
+  corresponding source and license notices, without Developer ID signing.
+- Carry forward the already merged 1.3.1 panel, sequencer, MIDI queue,
+  Shruthi-warning and dead-filter cleanups, and production cutoff-CV tests.
+- Native audio authority and independent full qualification remain required;
+  this is not a public macOS release.
+
+## 1.3.0 — Unreleased (historical engineering baseline)
 
 - Align product and qualification package metadata for the feature-frozen 1.3.0 candidate.
 - Native release qualification remains required before publication.
