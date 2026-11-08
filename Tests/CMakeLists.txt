@@ -270,39 +270,6 @@ if(NOT MSVC)
 endif()
 add_test(NAME AvrlibHdVowelTests COMMAND AvrlibHdVowelTests)
 
-# HD VCF parity: kFaithful must be bit-identical to the live engine's
-# swaraxt::SwaraXtFilter for the same committed params across a grid of
-# Shruthi-derived control values; also pins the updateFilterFromShruthi scaling.
-add_executable(AvrlibHdFilterParityTests
-    avrlib_hd/FilterParityTestsMain.cpp
-)
-target_include_directories(AvrlibHdFilterParityTests PRIVATE
-    "${SWARAXT_INCLUDE_FIRST}"
-    "${CMAKE_SOURCE_DIR}/Source"
-)
-swaraxt_configure_shruthi_target(AvrlibHdFilterParityTests)
-swaraxt_enable_warnings(AvrlibHdFilterParityTests)
-add_test(NAME AvrlibHdFilterParityTests COMMAND AvrlibHdFilterParityTests)
-
-# HD VCF unit tests (strict -Werror): mapping, mode budgets, determinism,
-# finite-output safety.
-add_executable(AvrlibHdFilterTests
-    avrlib_hd/FilterUnitTestsMain.cpp
-)
-target_include_directories(AvrlibHdFilterTests PRIVATE
-    "${SWARAXT_INCLUDE_FIRST}"
-    "${CMAKE_SOURCE_DIR}/Source"
-)
-if(MSVC)
-    target_compile_options(AvrlibHdFilterTests PRIVATE /W4 /permissive- /WX)
-else()
-    target_compile_options(AvrlibHdFilterTests PRIVATE -Wall -Wextra -Wpedantic -Werror)
-endif()
-if(NOT MSVC)
-    target_link_libraries(AvrlibHdFilterTests PRIVATE m)
-endif()
-add_test(NAME AvrlibHdFilterTests COMMAND AvrlibHdFilterTests)
-
 add_executable(SwaraXTTests
     SwaraXtTestsMain.cpp
     ${SWARAXT_SHRUTHI_SOURCES}
@@ -313,45 +280,6 @@ set_target_properties(SwaraXTTests PROPERTIES OUTPUT_NAME SwaraXTUnitTests)
 swaraxt_configure_shruthi_target(SwaraXTTests)
 swaraxt_enable_warnings(SwaraXTTests)
 add_test(NAME SwaraXTUnitTests COMMAND SwaraXTTests)
-
-function(swaraxt_add_filter_test_target target mode)
-    add_executable(${target}
-        Filter/FilterTestsMain.cpp
-        "${CMAKE_SOURCE_DIR}/Source/Engine/Filter/SwaraXtFilter.cpp"
-    )
-    target_include_directories(${target} PRIVATE "${CMAKE_SOURCE_DIR}/Source")
-    target_compile_definitions(${target} PRIVATE
-        SWARAXT_FILTER_TEST_MODE=${mode}
-        SWARAXT_FILTER_DIAGNOSTICS=1
-    )
-    swaraxt_enable_warnings(${target})
-    add_test(NAME ${target} COMMAND ${target})
-endfunction()
-
-swaraxt_add_filter_test_target(SwaraXtFilterTests 0)
-swaraxt_add_filter_test_target(SwaraXtFilterCoreTests 1)
-swaraxt_add_filter_test_target(SwaraXtFilterDcTests 2)
-swaraxt_add_filter_test_target(SwaraXtFilterResponseTests 3)
-swaraxt_add_filter_test_target(SwaraXtFilterResonanceTests 4)
-swaraxt_add_filter_test_target(SwaraXtFilterModulationTests 5)
-swaraxt_add_filter_test_target(SwaraXtFilterOversamplingTests 6)
-swaraxt_add_filter_test_target(SwaraXtFilterIntegrationTests 7)
-
-add_executable(SwaraXtFilterTransitionAudit
-    Filter/FilterTransitionAuditMain.cpp
-    "${CMAKE_SOURCE_DIR}/Source/Engine/Filter/SwaraXtFilter.cpp"
-)
-target_include_directories(SwaraXtFilterTransitionAudit PRIVATE "${CMAKE_SOURCE_DIR}/Source")
-target_compile_definitions(SwaraXtFilterTransitionAudit PRIVATE SWARAXT_FILTER_DIAGNOSTICS=1)
-swaraxt_enable_warnings(SwaraXtFilterTransitionAudit)
-add_test(NAME SwaraXtFilterTransitionAudit COMMAND SwaraXtFilterTransitionAudit)
-
-add_executable(SwaraXTFilterCpuBench
-    Filter/FilterCpuBenchMain.cpp
-    "${CMAKE_SOURCE_DIR}/Source/Engine/Filter/SwaraXtFilter.cpp"
-)
-target_include_directories(SwaraXTFilterCpuBench PRIVATE "${CMAKE_SOURCE_DIR}/Source")
-swaraxt_enable_warnings(SwaraXTFilterCpuBench)
 
 function(swaraxt_add_plugin_console_test target)
     juce_add_console_app(${target} PRODUCT_NAME "${target}")
@@ -436,7 +364,6 @@ swaraxt_add_shruthi_timing_target(SwaraXTChunkContinuityTests 5)
 swaraxt_add_shruthi_timing_target(SwaraXTEnvelopeRegressionTests 6)
 swaraxt_add_shruthi_timing_target(SwaraXTVcaHoldTests 7)
 
-swaraxt_add_plugin_console_test(SwaraXTCutoffRefineTests Filter/CutoffRefineTestsMain.cpp)
 swaraxt_add_plugin_console_test(SwaraXTGuiSyncTests GuiSync/GuiSyncTestsMain.cpp)
 swaraxt_add_plugin_console_test(SwaraXTPitchInputTests avrlib_hd/PitchInputTestsMain.cpp)
 swaraxt_add_plugin_console_test(SwaraXTFmRangePluginTests avrlib_hd/FmRangePluginTestsMain.cpp)
@@ -613,15 +540,18 @@ target_compile_definitions(SwaraXTCorrectnessTests PRIVATE SWARAXT_ENABLE_SHRUTH
 target_sources(SwaraXTCorrectnessTests PRIVATE ${SWARAXT_CLASSIC_OSCILLATOR_SOURCE})
 
 swaraxt_add_plugin_console_test(SwaraXTSmoothingAuditTests Smoothing/SmoothingAuditTestsMain.cpp)
+target_compile_definitions(SwaraXTSmoothingAuditTests PRIVATE SWARAXT_ENABLE_SHRUTHI_DEBUG_TAPS=1)
+swaraxt_enable_warnings_as_errors(SwaraXTSmoothingAuditTests)
+set_tests_properties(SwaraXTSmoothingAuditTests PROPERTIES TIMEOUT 120)
+
+# Production cutoff CV contract: real instrument path, not retired filter facade.
+swaraxt_add_plugin_console_test(SwaraXTCutoffContractTests Filter/CutoffContractTestsMain.cpp)
+target_compile_definitions(SwaraXTCutoffContractTests PRIVATE SWARAXT_ENABLE_SHRUTHI_DEBUG_TAPS=1)
+swaraxt_enable_warnings_as_errors(SwaraXTCutoffContractTests)
+set_tests_properties(SwaraXTCutoffContractTests PROPERTIES TIMEOUT 60)
 
 swaraxt_add_plugin_console_test(SwaraXTArchitectureControlTests Architecture/FilterControlTests.cpp)
 target_compile_definitions(SwaraXTArchitectureControlTests PRIVATE SWARAXT_ENABLE_SHRUTHI_DEBUG_TAPS=1)
-
-add_executable(SwaraXTFilterMultirateTests Architecture/FilterMultirateTests.cpp)
-target_include_directories(SwaraXTFilterMultirateTests PRIVATE "${CMAKE_SOURCE_DIR}/Source")
-target_compile_definitions(SwaraXTFilterMultirateTests PRIVATE SWARAXT_ENABLE_SHRUTHI_DEBUG_TAPS=1)
-swaraxt_enable_warnings(SwaraXTFilterMultirateTests)
-add_test(NAME SwaraXTFilterMultirateTests COMMAND SwaraXTFilterMultirateTests)
 
 add_executable(SwaraXTIR3109BoardTests Architecture/Ir3109BoardTests.cpp)
 target_include_directories(SwaraXTIR3109BoardTests PRIVATE "${CMAKE_SOURCE_DIR}/Source")
