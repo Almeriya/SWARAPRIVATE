@@ -1,6 +1,9 @@
 // Copyright 2026 MontroneDSP.
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Cutoff/resonance/master/quality-transition measurements and regressions.
+// TestDirectFilterQualityClick was removed with the legacy processSample()
+// cascade; the remaining tests exercise the production processInstrumentSample()
+// path through the real plugin.
 
 #include <JuceHeader.h>
 
@@ -56,8 +59,8 @@ void configureNeutralSaw(SwaraXtAudioProcessor& proc)
     setInt(proc, swaraxt::IDs::env2Decay, 0);
     setInt(proc, swaraxt::IDs::env2Sustain, 127);
     setInt(proc, swaraxt::IDs::env2Release, 40);
-    setInt(proc, swaraxt::IDs::filterEnvDepth, 32);
-    setInt(proc, swaraxt::IDs::filterLfoDepth, 0);
+    setFloat(proc, swaraxt::IDs::filterEnvDepth, 32);
+    setFloat(proc, swaraxt::IDs::filterLfoDepth, 0);
     setFloat(proc, swaraxt::IDs::filterKeyTracking, 0.0f);
     setFloat(proc, swaraxt::IDs::master, 0.85f);
     for (int row = 1; row <= 12; ++row)
@@ -118,34 +121,6 @@ std::vector<float> renderHeldNote(SwaraXtAudioProcessor& proc,
         }
     }
     return out;
-}
-
-void testDirectFilterQualityClick()
-{
-    swaraxt::SwaraXtFilter filter;
-    filter.prepare(swaraxt::SwaraXtEngine::kInternalSampleRate);
-    swaraxt::SwaraXtFilterParams params;
-    params.cutoffHz = 800.0f;
-    params.resonance = 0.92f;
-    filter.setParams(params);
-    filter.setQuality(swaraxt::FilterQuality::high);
-
-    float previous = 0.0f;
-    float maxDelta = 0.0f;
-    for (int i = 0; i < 4000; ++i)
-    {
-        const float x = std::sin(2.0f * 3.14159265f * 220.0f
-            * static_cast<float>(i) / static_cast<float>(swaraxt::SwaraXtEngine::kInternalSampleRate));
-        if (i == 2000)
-            filter.setQuality(swaraxt::FilterQuality::eco);
-        const float y = filter.processSample(x);
-        expect(std::isfinite(y), "direct quality switch stays finite");
-        if (i > 0)
-            maxDelta = std::max(maxDelta, std::abs(y - previous));
-        previous = y;
-    }
-    std::printf("quality direct-reset max|dy|=%.6f\n", static_cast<double>(maxDelta));
-    expect(maxDelta > 0.05f, "live quality reset is the measured click mechanism");
 }
 
 void testEngineQualityDeclick()
@@ -359,7 +334,7 @@ void testCutoffAndResonancePluginJumps()
         });
         const auto stats = analyze(cap.samples);
         const auto click = measureIsolatedClick(cap.samples, cap.changeIndex);
-        std::printf("%s sr=%.1fk blk=%d peak=%.4f max|dy|=%.5f bound=%.5f follow=%.5f click=%s invalid=%d\n",
+        std::printf("%s sr=%.1fk blk=%d peak=%.4f max|dy|=%.5f bound=%.5f follow=%.5f click=%s\n",
                     label,
                     sampleRate / 1000.0,
                     blockSize,
@@ -367,8 +342,7 @@ void testCutoffAndResonancePluginJumps()
                     static_cast<double>(stats.maxDelta),
                     static_cast<double>(click.boundaryDy),
                     static_cast<double>(click.followDy),
-                    click.click ? "YES" : "no",
-                    stats.invalid);
+                    click.click ? "YES" : "no");
         expect(stats.invalid == 0, "base-parameter jump stays finite");
         expect(! click.click, "base-parameter jump has no isolated click");
         return click;
@@ -481,7 +455,6 @@ void testMatrixAmountAndLfoRateStayNative()
 int main()
 {
     juce::ScopedJuceInitialiser_GUI juce;
-    testDirectFilterQualityClick();
     testEngineQualityDeclick();
     testMasterRamp();
     testCutoffAndResonancePluginJumps();
