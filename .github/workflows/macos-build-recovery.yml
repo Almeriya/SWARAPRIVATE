@@ -5,7 +5,7 @@ name: macOS 1.3.1 native build recovery diagnostics
 on:
   push:
     branches: [engineering/macos-131-qualification-recovery]
-    paths: [.github/workflows/macos-build-recovery.yml]
+    paths: [.github/workflows/macos-build-recovery.yml, scripts/macos/build_recovery_probe.py]
   workflow_dispatch:
     inputs:
       architecture:
