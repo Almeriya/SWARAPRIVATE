@@ -5,7 +5,7 @@ name: macOS 1.3.1 native build recovery diagnostics
 on:
   push:
     branches: [engineering/macos-131-qualification-recovery]
-    paths: [.github/workflows/macos-build-recovery.yml, scripts/macos/build_recovery_probe.py]
+    paths: [.github/workflows/macos-build-recovery.yml]
   workflow_dispatch:
     inputs:
       architecture:
@@ -23,20 +23,30 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: sw2-build-recovery-${{ github.ref }}-${{ github.sha }}-${{ inputs.architecture || 'x86_64' }}-${{ inputs.profile || 'Release' }}
+  group: sw2-build-recovery-${{ github.ref }}-${{ github.sha }}
   cancel-in-progress: false
 jobs:
   native-build-probe:
-    name: UNQUALIFIED build probe (${{ inputs.architecture || 'x86_64' }}, ${{ inputs.profile || 'Release' }})
+    name: UNQUALIFIED build probe (${{ matrix.architecture }}, ${{ matrix.profile }})
     if: github.repository == 'RIG-AUDIO/SW2'
-    runs-on: ${{ (inputs.architecture || 'x86_64') == 'arm64' && 'macos-15' || 'macos-15-intel' }}
+    strategy:
+      # Exact missing timeout profiles. Only one expensive Mac runner at a time.
+      # Cancel pending profiles on a failure; diagnose before another expensive run.
+      fail-fast: true
+      max-parallel: 1
+      matrix:
+        include:
+          - {architecture: arm64, profile: asan-ubsan, runner: macos-15}
+          - {architecture: x86_64, profile: asan-ubsan, runner: macos-15-intel}
+          - {architecture: x86_64, profile: tsan, runner: macos-15-intel}
+    runs-on: ${{ matrix.runner }}
     timeout-minutes: 350
     env:
       DEVELOPER_DIR: /Applications/Xcode_16.4.app/Contents/Developer
       PYTHONDONTWRITEBYTECODE: '1'
       SWARAXT_REPOSITORY_PRIVATE: ${{ github.event.repository.private }}
-      TARGET_ARCH: ${{ inputs.architecture || 'x86_64' }}
-      TARGET_PROFILE: ${{ inputs.profile || 'Release' }}
+      TARGET_ARCH: ${{ matrix.architecture }}
+      TARGET_PROFILE: ${{ matrix.profile }}
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
         with:
@@ -67,7 +77,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: mac-build-recovery-${{ inputs.architecture || 'x86_64' }}-${{ inputs.profile || 'Release' }}-${{ github.sha }}-${{ github.run_attempt }}
+          name: mac-build-recovery-${{ matrix.architecture }}-${{ matrix.profile }}-${{ github.sha }}-${{ github.run_attempt }}
           path: |
             ${{ runner.temp }}/swara-build-recovery/*.log
             ${{ runner.temp }}/swara-build-recovery/*.json
