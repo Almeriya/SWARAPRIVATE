@@ -163,6 +163,7 @@ def main():
     args = parser.parse_args()
     hosted_root(args.root, SOURCE)
     args.task = 'build-probe'
+    args.source_sha = os.environ['GITHUB_SHA']
     args.mode = 'full'
     args.base_source_sha = '5e7b967db0b52f773f382217a72c6c0c3ff6b8f7'
     BuildRecoveryProbe(args).execute()
