@@ -15,6 +15,11 @@ _ALLOWED_META = {
     'scripts/macos/source_profile_131_manifest.json',
     'scripts/macos/test_source_profile_131.py',
 }
+_BUILD_RECOVERY_META = {
+    'scripts/macos/build_recovery_probe.py',
+    '.github/workflows/macos-build-recovery.yml',
+}
+
 _APPLE_EXCEPTIONS = {
     'Source/Tuning/TuningTable.cpp', 'Source/Tuning/RealFromChars.h',
     'Source/Plugin/SwaraXtParameterLayout.cpp',
@@ -81,7 +86,7 @@ def validate_tree(base, current, manifest):
         _check(current.get(path) == sha, 'migrated test mismatch: ' + path)
     for path, sha in manifest['protected_mac_tests'].items():
         _check(current.get(path) == sha, 'protected Mac test/golden mismatch: ' + path)
-    allowed = set(expected) | set(manifest['transport_tests']) | set(removed) | _ALLOWED_META | set(release_metadata)
+    allowed = set(expected) | set(manifest['transport_tests']) | set(removed) | _ALLOWED_META | _BUILD_RECOVERY_META | set(release_metadata)
     for p in set(base) | set(current):
         if base.get(p) != current.get(p):
             _check(p in allowed, 'unreviewed repository difference: ' + p)
