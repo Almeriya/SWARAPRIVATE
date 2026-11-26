@@ -31,6 +31,8 @@ _ALLOWED_META = {
     '.github/workflows/macos-development-build.yml',
     '.github/workflows/macos-native-test-probe.yml',
     'scripts/macos/native_test_probe.py',
+    # One-line Current wrapper rename: ProgramChange → PresetSelection after prepare.
+    'Tests/Current/PresetRestoreHeadlessTestsMain.cpp',
 }
 _BUILD_RECOVERY_META = {
     'scripts/macos/build_recovery_probe.py',

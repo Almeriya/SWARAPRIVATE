@@ -34,7 +34,8 @@ class SourceProfile133Tests(unittest.TestCase):
                   '.github/workflows/macos-intel-native-diagnostics.yml',
                   '.github/workflows/macos-development-build.yml',
                   '.github/workflows/macos-native-test-probe.yml',
-                  'scripts/macos/native_test_probe.py'):
+                  'scripts/macos/native_test_probe.py',
+                  'Tests/Current/PresetRestoreHeadlessTestsMain.cpp'):
             cls.base.setdefault(p, 'baseline-sha')
             cls.current[p] = 'reviewed-sha'
         cls.base['third_party/shruthi-1'] = cls.current['third_party/shruthi-1'] = 'pinned'

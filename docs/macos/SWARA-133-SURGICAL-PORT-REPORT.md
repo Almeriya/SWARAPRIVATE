@@ -267,7 +267,19 @@ Other Current headless wrappers: no analogous missing symbols.
 +    testExplicitPresetSelectionAfterPrepare();
 ```
 
+Allowlisted in `source_profile_133._ALLOWED_META` (harness-only; not a production Source/ change).
+
 No production DSP / golden / JUCE changes. Coverage preserved (explicit preset selection after `prepareToPlay()`).
+
+Recovery commits (do not mix with `ca3ccf3` binaries):
+
+| SHA | Role |
+| --- | --- |
+| `5f315ef261d79deed8b12cf7043f354775be7444` | Harness rename + probe script (preflight **FAIL**: path not yet allowlisted) |
+| `d20b12ac001bccb940f2184dadbb616011309b1d` | Recovery `workflow_dispatch` → single-target probe (same preflight **FAIL**) |
+| *(next)* | Allowlist + re-dispatch ARM64 Debug `SwaraXTCurrentPresetRestoreHeadlessTests` |
+
+Stage A probe attempt: https://github.com/Almeriya/SWARAPRIVATE/actions/runs/45875899928 — **FAIL** (source profile; compile **NOT_RUN**)
 
 ### Classification of native jobs (`45807588777`)
 
