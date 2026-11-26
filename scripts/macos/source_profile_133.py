@@ -128,6 +128,9 @@ def compare_source_133(source, checkout_sha, base_sha, git_tree, original_base,
             'Apple/native test registration changed')
     require('SwaraXTCutoffContractTests' in tests and 'SwaraXTSmoothingAuditTests' in tests,
             'Production regression suite missing')
+    require('SwaraXTGrooveClockTests' in tests and 'SwaraXTHostGrooveTests' in tests
+            and 'SwaraXTSequencerSafetyTests' in tests and 'SwaraXTArpAutomationRaceTests' in tests,
+            '1.3.3 sequencer/groove regression suite missing')
     require('project(SwaraXT VERSION 1.3.3 LANGUAGES C CXX)' in root,
             'Reviewed macOS engineering product version must be 1.3.3')
     require('SWARA_BUILD_STANDALONE' in root, 'Standalone option must remain explicit')
@@ -145,6 +148,15 @@ def compare_source_133(source, checkout_sha, base_sha, git_tree, original_base,
             'Apple RealFromChars cutoff parser exception missing')
     require((source / 'Source/Tuning/RealFromChars.h').is_file(),
             'Pinned Apple RealFromChars helper missing')
+    require((source / 'Source/Engine/GrooveClock.h').is_file(),
+            '1.3.3 GrooveClock.h missing')
+    sequence_state = (source / 'Source/Engine/SequenceState.h').read_text()
+    engine = (source / 'Source/Engine/SwaraXtEngine.cpp').read_text()
+    require('struct WriterGate' in sequence_state and 'void revise(' in sequence_state,
+            '1.3.3 SequenceState writer transaction missing')
+    require('groove::unitsBeforeTick(' in engine and 'hostClockTickAtPpq(' in engine
+            and 'currentHostTimingKey(' in engine,
+            '1.3.3 host groove clock mapping missing')
     require(new.get('third_party/shruthi-1') == old.get('third_party/shruthi-1'),
             'Shruthi submodule pin changed')
     return {'base_source_sha': original_base, 'checkout_sha': checkout_sha,

@@ -32,7 +32,7 @@ class SourceProfile133Tests(unittest.TestCase):
 
     def test_approved_overlay_only(self):
         result = validate_tree(self.base, self.current, self.manifest)
-        self.assertEqual(result['source_files'], 189)
+        self.assertEqual(result['source_files'], 190)
         self.assertEqual(result['apple_exceptions'], 5)
         self.assertEqual(result['native_audio_reference'], 'REVIEW_REQUIRED')
 
