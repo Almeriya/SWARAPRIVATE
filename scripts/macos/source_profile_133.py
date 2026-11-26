@@ -190,9 +190,13 @@ def compare_source_133(source, checkout_sha, base_sha, git_tree, original_base,
             and 'static_cast<uint16_t>(phase_noise)' in
             (source / 'Source/Engine/ShruthiPort/include_first/avrlib_hd/vowel.h').read_text(),
             '1.3.3 Shruthi Part / AVR vowel phase-wrap contracts missing')
-    require('elseif(WIN32)' in deps and 'Juce901RestoreCompletion.cmake' in deps,
+    require('elseif(WIN32)' in deps
+            and 'include("${CMAKE_CURRENT_LIST_DIR}/Juce901RestoreCompletion.cmake")' in deps,
             'Windows restore-completion overlay wiring missing')
-    require('if(APPLE)' not in deps and 'SWARAXT_JUCE_RESTORE_COMPLETION' not in deps,
+    # Comment text may mention the macro; Apple must not get a second include path.
+    require(deps.count('Juce901RestoreCompletion.cmake') == 1
+            and 'if(APPLE)' not in deps
+            and 'elseif(APPLE)' not in deps,
             'Apple must not enable unverified SWARAXT_JUCE_RESTORE_COMPLETION')
     workflow = (source / '.github/workflows/macos-qualification.yml').read_text()
     policy_text = (source / 'scripts/macos/policy.py').read_text()
