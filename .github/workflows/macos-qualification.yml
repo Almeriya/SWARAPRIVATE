@@ -32,7 +32,7 @@ jobs:
       DEVELOPER_DIR: /Applications/Xcode_16.4.app/Contents/Developer
       REVIEWED_SHA: ${{ github.sha }}
       BASE_SHA: 5e7b967db0b52f773f382217a72c6c0c3ff6b8f7
-      EXECUTION_MODE: ${{ inputs.mode || 'full' }}
+      EXECUTION_MODE: ${{ inputs.mode || 'build' }}
       SWARAXT_REPOSITORY_PRIVATE: ${{ github.event.repository.private }}
       TARGET_ARCH: arm64
       PYTHONDONTWRITEBYTECODE: '1'
@@ -94,7 +94,7 @@ jobs:
       DEVELOPER_DIR: /Applications/Xcode_16.4.app/Contents/Developer
       REVIEWED_SHA: ${{ github.sha }}
       BASE_SHA: 5e7b967db0b52f773f382217a72c6c0c3ff6b8f7
-      EXECUTION_MODE: ${{ inputs.mode || 'full' }}
+      EXECUTION_MODE: ${{ inputs.mode || 'build' }}
       SWARAXT_REPOSITORY_PRIVATE: ${{ github.event.repository.private }}
       TARGET_ARCH: x86_64
       PYTHONDONTWRITEBYTECODE: '1'
@@ -149,7 +149,7 @@ jobs:
         if-no-files-found: error
         retention-days: 7
   universal:
-    if: github.repository == 'Almeriya/SWARAPRIVATE' && (inputs.mode || 'full') != 'preflight'
+    if: github.repository == 'Almeriya/SWARAPRIVATE' && (inputs.mode || 'build') != 'preflight'
     needs:
     - preflight-intel
     runs-on: macos-15-intel
@@ -158,7 +158,7 @@ jobs:
       DEVELOPER_DIR: /Applications/Xcode_16.4.app/Contents/Developer
       REVIEWED_SHA: ${{ github.sha }}
       BASE_SHA: 5e7b967db0b52f773f382217a72c6c0c3ff6b8f7
-      EXECUTION_MODE: ${{ inputs.mode || 'full' }}
+      EXECUTION_MODE: ${{ inputs.mode || 'build' }}
       SWARAXT_REPOSITORY_PRIVATE: ${{ github.event.repository.private }}
       PYTHONDONTWRITEBYTECODE: '1'
     steps:
@@ -245,7 +245,7 @@ jobs:
         if-no-files-found: error
         retention-days: 7
   smoke:
-    if: github.repository == 'Almeriya/SWARAPRIVATE' && ((inputs.mode || 'full') == 'smoke' || (inputs.mode || 'full') == 'full')
+    if: github.repository == 'Almeriya/SWARAPRIVATE' && ((inputs.mode || 'build') == 'smoke' || (inputs.mode || 'build') == 'full')
     needs:
     - universal
     strategy:
@@ -263,7 +263,7 @@ jobs:
       DEVELOPER_DIR: /Applications/Xcode_16.4.app/Contents/Developer
       REVIEWED_SHA: ${{ github.sha }}
       BASE_SHA: 5e7b967db0b52f773f382217a72c6c0c3ff6b8f7
-      EXECUTION_MODE: ${{ inputs.mode || 'full' }}
+      EXECUTION_MODE: ${{ inputs.mode || 'build' }}
       SWARAXT_REPOSITORY_PRIVATE: ${{ github.event.repository.private }}
       TARGET_ARCH: ${{ matrix.platform.arch }}
       PYTHONDONTWRITEBYTECODE: '1'
@@ -331,7 +331,7 @@ jobs:
         if-no-files-found: error
         retention-days: 7
   native:
-    if: github.repository == 'Almeriya/SWARAPRIVATE' && (inputs.mode || 'full') == 'full'
+    if: github.repository == 'Almeriya/SWARAPRIVATE' && (inputs.mode || 'build') == 'full'
     needs:
     - preflight-arm64
     - preflight-intel
@@ -353,7 +353,7 @@ jobs:
       DEVELOPER_DIR: /Applications/Xcode_16.4.app/Contents/Developer
       REVIEWED_SHA: ${{ github.sha }}
       BASE_SHA: 5e7b967db0b52f773f382217a72c6c0c3ff6b8f7
-      EXECUTION_MODE: ${{ inputs.mode || 'full' }}
+      EXECUTION_MODE: ${{ inputs.mode || 'build' }}
       SWARAXT_REPOSITORY_PRIVATE: ${{ github.event.repository.private }}
       TARGET_ARCH: ${{ matrix.platform.arch }}
       TARGET_PROFILE: ${{ matrix.profile }}
@@ -435,7 +435,7 @@ jobs:
       DEVELOPER_DIR: /Applications/Xcode_16.4.app/Contents/Developer
       REVIEWED_SHA: ${{ github.sha }}
       BASE_SHA: 5e7b967db0b52f773f382217a72c6c0c3ff6b8f7
-      EXECUTION_MODE: ${{ inputs.mode || 'full' }}
+      EXECUTION_MODE: ${{ inputs.mode || 'build' }}
       SWARAXT_REPOSITORY_PRIVATE: ${{ github.event.repository.private }}
       PREFLIGHT_RESULT: ${{ needs.preflight-arm64.result == 'success' && needs.preflight-intel.result
         == 'success' && 'success' || 'failure' }}

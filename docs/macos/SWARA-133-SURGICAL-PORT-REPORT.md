@@ -10,7 +10,7 @@ This report records actual work on `port/swaraxt-133-macos-surgical`. Historical
 | --- | --- | --- |
 | Destination Mac 1.3.1 | `Almeriya/SWARAPRIVATE` `main` | `64fa3f6640706db5ae7181bd9e694828b0284e3b` |
 | Official product 1.3.3 | `montronedsp/SWARAXT` `v1.3.3` | `6ea598e47fb0347d23ffa538a64b02318187a7ed` |
-| Integration HEAD | `Almeriya/SWARAPRIVATE` `port/swaraxt-133-macos-surgical` | `5722f902ab8d09c3cb9a43a32014dd2420bd36c0` |
+| Integration HEAD | `Almeriya/SWARAPRIVATE` `port/swaraxt-133-macos-surgical` | see amendment — GHA-only rebuild |
 
 Frozen inputs were verified before edits. Later public `main` packaging/README/Linux-installer commits were not tracked.
 
@@ -28,7 +28,8 @@ Surgical file copies and semantic overlays. No `git merge`, no `git checkout pub
 | D MIDI/looper | `4a41e64` | CC120 emergency silence, delay wrap, looper hold, SRC lookahead drain | Apple FP guards on host SRC and DC path |
 | E sequencer | `6c653cf` | `GrooveClock.h`, host tick inverse, timing-key remap, `SequenceState` writer/revise | Existing sequencer MIDI ownership kept with public stop/realign rules |
 | F processor/editor | `4562068` | Bounded preset reads, restore results/notifications, bus layout, LookAndFeel `shared_ptr` | `SWARAXT_JUCE_RESTORE_COMPLETION` **not** enabled on Apple |
-| H CI identity | `5722f90` | Workflow/policy/gate point at `Almeriya/SWARAPRIVATE`, private=true | `native_reference.py` still fail-closed; historical 1.3.1 profile intact |
+| H CI identity | `5722f90` | Workflow/policy/gate point at `Almeriya/SWARAPRIVATE` | Corrected later to public visibility; `native_reference.py` fail-closed |
+| H2 visibility + parity | `8b6a83e` | Fail-closed `SWARAXT_REPOSITORY_PRIVATE=false`; PatchBridge arp bounds; Shruthi Part; AVR vowel wrap; PNG import; `AvrlibHdVowelPhaseWrapTests` | Five Apple exceptions only |
 
 ## Mac-specific adaptations
 
@@ -105,9 +106,11 @@ REAPER 7.86 is installed. No existing Swara XT AU/VST3 was found in `~/Library/A
 
 ## ARM CI / full CI
 
-Not dispatched. Full matrix is reserved for after a coherent local Intel plugin build.
+**GitHub Actions is the only compilation and automated qualification path.** Local product/test compilation on this Intel Mac is stopped and must not be resumed for this mission.
 
-Stage H updated `.github/workflows/macos-qualification.yml`, `policy.py`, `ci.py`, and `gate.py` so jobs no longer skip on `RIG-AUDIO/SW2` / public-repo guards. Destination identity is `Almeriya/SWARAPRIVATE` with `SWARAXT_REPOSITORY_PRIVATE=true`. Secret-free. No Apple credentials, Developer ID, or notarization.
+`Almeriya/SWARAPRIVATE` is **public**. Fail-closed admission requires `GITHUB_REPOSITORY=Almeriya/SWARAPRIVATE` and `SWARAXT_REPOSITORY_PRIVATE=false` (matching `github.event.repository.private`). Repository settings were not changed. Secret-free. No Apple credentials, Developer ID, or notarization.
+
+Push default execution mode is **`build`** (preflight + universal candidate), not `full`, so minor source pushes do not re-run smoke/native. One complete `full` qualification is reserved for the final source SHA after the targeted build is green.
 
 `native_reference.py` still returns **REVIEW_REQUIRED** / fail-closed. No Mac audio golden was admitted.
 
@@ -140,33 +143,33 @@ Staged commits were scanned for credential filenames (`.p8`, `.p12`, `.pfx`, Aut
 ## PR
 
 Branch: `port/swaraxt-133-macos-surgical`  
-Port commits through CI identity: `5722f902ab8d09c3cb9a43a32014dd2420bd36c0`  
-Report commit: `05ff3c3`  
 PR: https://github.com/Almeriya/SWARAPRIVATE/pull/1 (keep unmerged while gates remain blocked)
 
 ## Untested / remaining blockers
 
-- Local AU/VST3 link and bundle identity (see amendment)
-- plugin-console MIDI, host-groove, restore, and sequencer suites
-- auval, pluginval, Steinberg validator
-- REAPER load, MIDI, transport, Classic/Dual SVF listening, 1.3.1 session restore
-- Hosted Intel and ARM64 preflight/smoke/native/gate
+- Hosted Intel preflight + universal `build` (downloadable AU/VST3 artifact)
+- One hosted `full` qualification of the final source SHA (Intel + ARM64)
+- Download hosted universal candidate to this Intel Mac (test machine only)
+- Local validators / REAPER 7.86 against the hosted artifact; preserve system 1.3.1
 - Independent Mac audio-reference admission
-- Universal two-slice candidate
 - Apple JUCE restore-completion overlay (explicitly not enabled)
 
 ## Final assessment
 
 **PARTIAL / BLOCKED** for qualification and release.
 
-Source integration Stages A–F and CI identity Stage H are on the branch with fail-closed audio authority. Mandatory host, validator, hosted matrix, and audio-reference gates remain open.
+Production Source/ matches official 1.3.3 except the five documented Apple exceptions. Compilation and automated qualification move exclusively to GitHub Actions. This Intel Mac is a **test machine** only.
 
 ---
 
-## Amendment — local Intel plugin build
+## Amendment — local Intel plugin build (superseded for compilation)
 
-1. First compile failed: nested `third_party/shruthi-1/avrlib` was uninitialized (`avrlib/base.h` missing). Local copy of pinned SHA `af7266e5b48ae20c0f83d4352c75c1068545cffc` unblocked includes. Not committed.
-2. `ninja -j2 SwaraXT_AU SwaraXT_VST3` Release x86_64 then **succeeded**. Bundles are x86_64-only, version 1.3.3 in Info.plist, ad-hoc sealed.
-3. `auval -a` lists two `aumu SwXT MnTr` entries: system `/Library/Audio/Plug-Ins/Components/Swara XT.component` (left in place) and the user-folder `1.3.3-dev-intel` copy. The first `auval -v` loaded **1.3.1 (`0x10301`)**. After `AudioComponentRegistrar` was restarted, a later `auval -v aumu SwXT MnTr` reported **Component Version: 1.3.3 (`0x10303`)** and **AU VALIDATION SUCCEEDED**. Binding is not guaranteed while both copies share the same four-character identity. The system 1.3.1 was not moved or overwritten.
-4. REAPER 7.86 is installed. Owner must rescan and instantiate **VST3** `Swara XT 1.3.3-dev-intel` from the user VST3 folder. AU instantiation in REAPER may still bind the system 1.3.1. No human listening check is claimed.
-5. Hosted Intel/ARM matrix was not dispatched from this session.
+Historical local x86_64 AU/VST3 work and auval notes remain evidence only. **Do not resume local product or CTest compilation.** Nested `avrlib` was never committed. System `/Library/Audio/Plug-Ins/Components/Swara XT.component` (1.3.1) must stay installed. Reversible user-folder `1.3.3-dev-*` copies may be replaced by the hosted universal artifact later.
+
+## Amendment — GHA-only rebuild after PR review
+
+1. Local ninja/CTest for this mission was stopped.
+2. Visibility policy corrected to public: `REPOSITORY_PRIVATE = 'false'` in `policy.py` / `ci.py` / workflows / profile / tests.
+3. Eight remaining 1.3.3 production diffs reconciled; vowel-wrap public regression registered. Source parity: 185 identical + 5 Apple exceptions (`RealFromChars.h` Apple-only).
+4. Qualification workflow push default is `build` (not `full`).
+5. Next step: push branch → hosted preflight/build → download universal artifact → REAPER/validators locally → one `full` matrix on the final SHA.

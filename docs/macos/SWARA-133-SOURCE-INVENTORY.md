@@ -75,8 +75,12 @@ Linux/Windows package workflows and public native-reference JSON files are **not
 | `Source/Engine/SampleRate/InternalSampleQueue.h` | D | Panic-drain / SRC lookahead | CC120 |
 | `Source/Plugin/PluginProcessor.*` `PluginEditor.*` | F | Bounded presets, restore results, LnF lifetime | session fixtures |
 | Remaining engine/UI/test diffs | C–F | Port public behaviour; keep Apple arithmetic/tests | matching suite |
+| `Source/Engine/PatchBridge.cpp` | H2 | Public `jlimit(1,4)` arp_range | SequencerSafety / bridge |
+| `Source/Engine/ShruthiPort/adapted/shruthi/part.{cc,h}` | H2 | Public Part clamps / transpose / external clock | SequencerSafety |
+| `Source/.../avrlib_hd/{oscillator,vowel}.h` + `oscillator.cc` | H2 | AVR uint16 vowel phase wrap | `AvrlibHdVowelPhaseWrapTests` |
+| `Source/Ui/SwaraXtSkin.{cpp,h}` | H2 | PNG IHDR / decoded-budget preflight | DefensiveHardening |
 
-Windows-only IR3109 numerical correction stays platform-guarded.
+Windows-only IR3109 numerical correction stays platform-guarded. Production Source/ after H2: official 1.3.3 bytes except the five Apple exceptions.
 
 ## 5. Test and CI changes
 
