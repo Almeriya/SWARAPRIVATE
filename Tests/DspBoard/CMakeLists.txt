@@ -83,6 +83,22 @@ target_link_libraries(SwaraBoardModelTests PRIVATE SwaraBoardAlgorithm)
 swaraxt_enable_warnings(SwaraBoardModelTests)
 add_test(NAME SwaraBoardModelTests COMMAND SwaraBoardModelTests)
 
+add_executable(SwaraBoardLooperProductionTests LooperProductionTests.cpp)
+target_link_libraries(SwaraBoardLooperProductionTests PRIVATE SwaraBoardAlgorithm)
+swaraxt_enable_warnings(SwaraBoardLooperProductionTests)
+if(MSVC)
+    target_compile_options(SwaraBoardLooperProductionTests PRIVATE /W4 /WX)
+endif()
+add_test(NAME SwaraBoardLooperProductionTests COMMAND SwaraBoardLooperProductionTests)
+
+add_executable(SwaraBoardDelayWrapTests DelayWrapTests.cpp)
+target_link_libraries(SwaraBoardDelayWrapTests PRIVATE SwaraBoardAlgorithm)
+swaraxt_enable_warnings(SwaraBoardDelayWrapTests)
+if(MSVC)
+    target_compile_options(SwaraBoardDelayWrapTests PRIVATE /W4 /WX)
+endif()
+add_test(NAME SwaraBoardDelayWrapTests COMMAND SwaraBoardDelayWrapTests)
+
 add_executable(SwaraXTDspFxNativeExactParityTests
     "${CMAKE_SOURCE_DIR}/Tests/Parity/DspFxNativeExactParityTestsMain.cpp")
 target_include_directories(SwaraXTDspFxNativeExactParityTests PRIVATE "${CMAKE_SOURCE_DIR}/Tests")

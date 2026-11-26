@@ -369,13 +369,21 @@ void Part::ControlChange(uint8_t controller, uint8_t value) {
 
 /* static */
 void Part::AllSoundOff() {
+  // CC 120 ignores sustain and must not enter the amplitude release stage.
+  // Clear owners first so a later Note On can restart synthesis normally.
   ignore_note_off_messages_ = false;
+  release_latched_keys_on_next_note_on_ = false;
   AllNotesOff();
+  StopSequencerArpeggiatorNotes();
+  voice_.Kill();
 }
 
 /* static */
 void Part::ResetAllControllers() {
   ignore_note_off_messages_ = false;
+  // CC 121 also resets sustain. Release only keys already marked as
+  // sustained; physically held keys must remain pressed.
+  ReleaseLatchedNotes();
   voice_.ResetAllControllers();
 }
 
@@ -507,8 +515,10 @@ void Part::Start(bool internal) {
     voice_.NoteOff();
   }
 
+  // Sustain belongs to the performance controller, not to the sequencer
+  // clock. The first Note On can call Start(true); host start/reclock must
+  // likewise not consume a pedal already pressed.
   release_latched_keys_on_next_note_on_ = false;
-  ignore_note_off_messages_ = false;
 
   arp_seq_prescaler_ = 0;
   arp_seq_step_ = 0xff;

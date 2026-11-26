@@ -262,8 +262,17 @@ void SwaraXtAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce:
     juce::ScopedNoDenormals noDenormals;
     buffer.clear();
 
-    if (! isPrepared_)
+    // Output MIDI is sequencer-generated only, and only from a prepared render.
+    // An early return must not leave the host's input events in the shared buffer.
+    // Releases already queued by releaseResources stay in the engine until the
+    // next prepared block; this clear does not drop them.
+    if (! isPrepared_ || buffer.getNumSamples() <= 0)
+    {
+        if (engineInitialized_)
+            engine_.releaseMidiInput(midi);
+        midi.clear();
         return;
+    }
 
     const auto transport = captureHostTransport();
     // Keep restoration excluded through this render. Audio never waits; a failed
@@ -276,8 +285,6 @@ void SwaraXtAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce:
     // controls update. A restore's reset intent requires a complete capture.
     const bool admitted = publication && (captured || !requestEngineReset_.load(std::memory_order_acquire));
     const int numSamples = buffer.getNumSamples();
-    if (numSamples <= 0)
-        return;
 
     // The engine snapshots input before replacing this host-owned MIDI buffer.
     const bool reset = admitted && requestEngineReset_.exchange(false, std::memory_order_acq_rel);

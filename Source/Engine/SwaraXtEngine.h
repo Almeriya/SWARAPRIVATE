@@ -166,6 +166,7 @@ class SwaraXtEngine {
                  bool adoptControls = true,
                  const SequenceSnapshot* sequence = nullptr,
                  uint32_t revision = 0, bool resetRequested = false);
+    void releaseMidiInput(const juce::MidiBuffer& midi) noexcept;
     void clearSequencerMidiOutput() noexcept;
     bool loadTuningBytes(const uint8_t* data, size_t size);
     bool loadBuiltinTuning(int index);
@@ -351,6 +352,8 @@ class SwaraXtEngine {
     bool voiceRequiresAudio() const noexcept;
     bool patchRequiresAudioSource() const noexcept;
     void dispatchMidi(const PendingMidi& event);
+    void applyEmergencySilence() noexcept;
+    int emergencyDcResetRemaining_ = 0;
     void collectMidiEvents(juce::MidiBufferIterator& cursor, const juce::MidiBufferIterator& end,
                            int startSample, int numSamples);
     void updateFilterFromShruthi();

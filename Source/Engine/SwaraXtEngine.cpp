@@ -31,6 +31,25 @@ bool sameSequencePayload(const SequenceSnapshot& a, const SequenceSnapshot& b) n
         && a.steps == b.steps && a.freePitch == b.freePitch && a.scaleDegree == b.scaleDegree;
 }
 
+bool isTransientPerformanceController(uint8_t controller) noexcept
+{
+    switch (controller)
+    {
+        case midi::kHoldPedal:
+        case midi::kModulationWheelMsb:
+        case midi::kModulationWheelJoystickMsb:
+        case midi::kFootPedalMsb:
+        case midi::kVolume:
+        case midi::kAssignableCcA:
+        case midi::kAssignableCcB:
+        case midi::kAssignableCcC:
+        case midi::kAssignableCcD:
+            return true;
+        default:
+            return false;
+    }
+}
+
 constexpr float kMinimumPanelCutoffHz = 10.0f;
 constexpr float kMaximumPanelCutoffHz = 20000.0f;
 
@@ -273,7 +292,17 @@ void SwaraXtEngine::applyParameters(const SequenceSnapshot& sequence, uint32_t r
     patch->filter_cutoff = shruthiCutoffCodeFromUnrounded(unroundedCutoff);
     patch->filter_resonance = static_cast<uint8_t>(juce::jlimit(0, 63,
         static_cast<int>(std::lround(filterResonance_ * 63.0f))));
-    midiChannel_ = juce::jlimit(0, 16, ParameterCache::loadInt(parameterCache_->midiChannel));
+    const int nextMidiChannel = juce::jlimit(0, 16,
+        ParameterCache::loadInt(parameterCache_->midiChannel));
+    if (nextMidiChannel != midiChannel_ && (part_.num_notes() != 0 || part_.latched()))
+    {
+        // Note Off and pedal-up from the old input channel will now be rejected.
+        // End only those input-owned lifetimes; leave the host audio/board
+        // buffers intact. Generated MIDI has its own saved original channel
+        // and is released through the existing sequencer scheduler.
+        part_.AllSoundOff();
+    }
+    midiChannel_ = nextMidiChannel;
     midiInputMode_ = juce::jlimit(0, 2, ParameterCache::loadInt(parameterCache_->midiInputTuning));
     // The tuning latch precedes parameter adoption; install this admitted mode
     // before clocks or MIDI can generate a note in the current callback.
@@ -779,13 +808,18 @@ void SwaraXtEngine::dispatchMidi(const PendingMidi& event)
     else if (statusHi == 0xB0)
     {
         if (event.data1 == 120)
+        {
             midiDispatcher_.AllSoundOff(channel);
+            applyEmergencySilence();
+        }
         else if (event.data1 == 123)
             midiDispatcher_.AllNotesOff(channel);
         else if (event.data1 == 121)
             midiDispatcher_.ResetAllControllers(channel);
-        else
+        else if (isTransientPerformanceController(event.data1))
             midiDispatcher_.ControlChange(channel, event.data1, event.data2);
+        // Mapped patch/system CC and NRPN stay with APVTS. Firmware must not
+        // keep hidden persistent octave/raga/patch writes.
     }
     else if (statusHi == 0xE0)
     {
@@ -799,6 +833,48 @@ void SwaraXtEngine::dispatchMidi(const PendingMidi& event)
     else if (statusHi == 0xA0)
     {
         midiDispatcher_.Aftertouch(channel, event.data1, event.data2);
+    }
+}
+
+void SwaraXtEngine::applyEmergencySilence() noexcept
+{
+    // Voice::Kill() stops new energy at the VCA. Already-rendered native
+    // samples, the Dual SVF matching delay, and series board delay/feedback
+    // can still reach the host. Clear only those panic-owned stores. A recorded
+    // loop is kept; its playback stays stopped until the play control changes.
+    // Leave classic/experimental filter memory and the SRC kernel so a later
+    // Note On in this block is not a wholesale engine reset.
+    dualOutputDelay_.reset();
+    internalQueue_.silenceLookahead();
+    boardProcessor_.silenceSoundingState(activeBoard_.effect);
+    postDacFilter_.reset();
+    // The 0.7 Hz output DC blocker would otherwise take hundreds of
+    // milliseconds to forget the last sounding sample.
+    dcBlocker_.reset();
+    // The samples still inside the SRC window are the pre-panic note. Let them
+    // drain without charging the 0.7 Hz blocker, or that blocker rings for
+    // hundreds of milliseconds after the window is gone.
+    const double host = hostSampleRate_ > 1.0 ? hostSampleRate_ : 48000.0;
+    const double native = static_cast<double>(kOutputLatencyNativeSamples + kAudioBlockSize + 256);
+    emergencyDcResetRemaining_ = static_cast<int>(std::ceil(native * host / kInternalSampleRate)) + 8;
+}
+
+void SwaraXtEngine::releaseMidiInput(const juce::MidiBuffer& midi) noexcept
+{
+    for (const auto metadata : midi)
+    {
+        if (metadata.numBytes != 3)
+            continue;
+        PendingMidi event;
+        event.status = metadata.data[0];
+        event.data1 = static_cast<uint8_t>(metadata.data[1] & 0x7f);
+        event.data2 = static_cast<uint8_t>(metadata.data[2] & 0x7f);
+        const auto type = event.status & 0xf0;
+        const bool release = type == 0x80 || (type == 0x90 && event.data2 == 0)
+            || (type == 0xb0 && ((event.data1 == 64 && event.data2 < 64)
+                || event.data1 == 120 || event.data1 == 121 || event.data1 == 123));
+        if (release)
+            dispatchMidi(event);
     }
 }
 
@@ -1368,8 +1444,8 @@ void SwaraXtEngine::process(const juce::MidiBuffer& midi,
 
         float sample = 0.0f;
         if (internalQueue_.size() >= internalQueue_.minimumReadableSize())
-            sample = dcBlocker_.process(internalQueue_.readInterpolated());
-        else if (drainingToDormant_)
+            sample = internalQueue_.readInterpolated();
+        else if (drainingToDormant_ && emergencyDcResetRemaining_ == 0)
         {
             dcDrainingToDormant_ = true;
             sample = dcBlocker_.process(0.0f);
@@ -1383,6 +1459,18 @@ void SwaraXtEngine::process(const juce::MidiBuffer& midi,
                 || std::abs(sample) <= kDcSettlementThreshold
                 || dcDrainSamples_ >= maxDcDrainSamples_)
                 enterDormant();
+        }
+
+        // Panic drain: emit the SRC residue raw and keep the blocker empty.
+        // Feeding that residue through the 0.7 Hz filter would re-charge it.
+        if (emergencyDcResetRemaining_ > 0)
+        {
+            dcBlocker_.reset();
+            --emergencyDcResetRemaining_;
+        }
+        else if (! drainingToDormant_ || ! dcDrainingToDormant_)
+        {
+            sample = dcBlocker_.process(sample);
         }
 
         if (! std::isfinite(sample))
