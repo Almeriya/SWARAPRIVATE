@@ -29,10 +29,14 @@ _ALLOWED_META = {
     '.github/workflows/macos-build-recovery.yml',
     '.github/workflows/macos-intel-native-diagnostics.yml',
     '.github/workflows/macos-development-build.yml',
+    '.github/workflows/macos-native-test-probe.yml',
+    'scripts/macos/native_test_probe.py',
 }
 _BUILD_RECOVERY_META = {
     'scripts/macos/build_recovery_probe.py',
     '.github/workflows/macos-build-recovery.yml',
+    'scripts/macos/native_test_probe.py',
+    '.github/workflows/macos-native-test-probe.yml',
 }
 
 _APPLE_EXCEPTIONS = {

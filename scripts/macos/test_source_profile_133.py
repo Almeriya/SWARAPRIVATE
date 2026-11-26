@@ -32,7 +32,9 @@ class SourceProfile133Tests(unittest.TestCase):
                   'scripts/macos/test_policy.py',
                   '.github/workflows/macos-build-recovery.yml',
                   '.github/workflows/macos-intel-native-diagnostics.yml',
-                  '.github/workflows/macos-development-build.yml'):
+                  '.github/workflows/macos-development-build.yml',
+                  '.github/workflows/macos-native-test-probe.yml',
+                  'scripts/macos/native_test_probe.py'):
             cls.base.setdefault(p, 'baseline-sha')
             cls.current[p] = 'reviewed-sha'
         cls.base['third_party/shruthi-1'] = cls.current['third_party/shruthi-1'] = 'pinned'

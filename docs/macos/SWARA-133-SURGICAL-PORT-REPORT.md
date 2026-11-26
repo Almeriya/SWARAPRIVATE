@@ -147,17 +147,19 @@ PR: https://github.com/Almeriya/SWARAPRIVATE/pull/1 (keep unmerged while gates r
 
 ## Remaining blockers
 
-- Hosted `full` matrix on `ca3ccf3` still running / not yet complete (smoke + native Intel/ARM + audio gate)
+- Hosted `full` matrix on `ca3ccf3` **FAILED** (native compile) — recovery in progress; see amendment
+- Targeted ARM64 Debug probe of `SwaraXTCurrentPresetRestoreHeadlessTests` after harness fix
+- New universal `build` + one `full` matrix on the **new** recovery SHA (do not mix with `ca3ccf3` binaries)
 - Independent Mac audio-reference admission remains **REVIEW_REQUIRED**
-- AU fourcc collision `aumu SwXT MnTr` with system 1.3.1 — REAPER AU load version must be confirmed by owner; do not move system AU
-- Interactive REAPER GUI / transport / preset / Dual SVF listening: **OWNER ACTION REQUIRED**
+- AU fourcc collision `aumu SwXT MnTr` with system 1.3.1 — owner confirmation required
+- Interactive REAPER GUI / listening: **OWNER ACTION REQUIRED**
 - Apple JUCE restore-completion overlay still not enabled
 
 ## Final assessment
 
 **PARTIAL / BLOCKED** for merge and release.
 
-Hosted `build` + local validators + deterministic REAPER offline renders are green for the hosted universal VST3. Full matrix and audio-authority gates remain open. PR #1 stays unmerged.
+`ca3ccf3` hosted `build`/smoke/validators/REAPER offline evidence remains attributed to that SHA only. Native `full` failed on a stale headless test wrapper; recovery must establish a new exact SHA.
 
 ---
 
@@ -238,3 +240,58 @@ Still **REVIEW_REQUIRED**. No goldens regenerated. Historical Dual SVF / ARM fin
 ### Security
 
 No Apple credentials, Developer ID, notarization, or keychain access. CI secret-free; candidate ad-hoc only. QA PKG not published.
+
+## Amendment — CI recovery after `full` native compile failure
+
+Failed run: https://github.com/Almeriya/SWARAPRIVATE/actions/runs/45807588777 (source `ca3ccf3`)
+
+Preflight Intel/ARM, universal, and smoke Intel/ARM: **PASS** (still attributed to `ca3ccf3`).
+
+### Root cause (verified compiler)
+
+`Tests/Current/PresetRestoreHeadlessTestsMain.cpp` called stale
+`testExplicitProgramChangeAfterPrepare()`; implementation is
+`testExplicitPresetSelectionAfterPrepare()` in
+`Tests/Presets/PresetStateRestoreTestsMain.cpp`.
+
+First diagnostic (ARM64 Debug `build-native-tests.log`):
+
+`error: use of undeclared identifier 'testExplicitProgramChangeAfterPrepare'`
+
+Other Current headless wrappers: no analogous missing symbols.
+
+### Minimal fix
+
+```diff
+-    testExplicitProgramChangeAfterPrepare();
++    testExplicitPresetSelectionAfterPrepare();
+```
+
+No production DSP / golden / JUCE changes. Coverage preserved (explicit preset selection after `prepareToPlay()`).
+
+### Classification of native jobs (`45807588777`)
+
+| Profile | Result | Class |
+| --- | --- | --- |
+| ARM64 Debug | FAIL | **COMPILER** — undeclared identifier above |
+| ARM64 Release | FAIL | **COMPILER** — same |
+| ARM64 TSan | FAIL | **COMPILER** — same |
+| ARM64 ASan/UBSan | FAIL | **INTERRUPTED** (`ninja: build stopped: interrupted by user`) — not executed to assertion |
+| Intel Debug | FAIL | **COMPILER** — same |
+| Intel Release | FAIL | **INTERRUPTED** |
+| Intel TSan | FAIL | **INTERRUPTED** |
+| Intel ASan/UBSan | FAIL | **INTERRUPTED** |
+
+Interrupted profiles are **not** product regressions and are **not** PASS.
+
+### Recovery tooling
+
+Added fail-closed, secret-free:
+
+- `scripts/macos/native_test_probe.py`
+- `.github/workflows/macos-native-test-probe.yml`
+
+Stage A: dispatch ARM64 Debug probe for `SwaraXTCurrentPresetRestoreHeadlessTests` only.
+Stage C: after probe PASS, allow push `build` then one `full` on the **new** SHA.
+
+Audio authority remains **REVIEW_REQUIRED**.

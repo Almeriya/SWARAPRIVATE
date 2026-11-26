@@ -1,0 +1,80 @@
+# SPDX-FileCopyrightText: 2026 MontroneDSP
+# SPDX-License-Identifier: GPL-3.0-or-later
+name: macOS targeted native test probe
+# Compiles and runs one registered CTest target. Never a release or audio gate.
+on:
+  workflow_dispatch:
+    inputs:
+      architecture:
+        description: Native Mac runner architecture
+        type: choice
+        required: true
+        default: arm64
+        options: [arm64, x86_64]
+      profile:
+        description: Native profile for the probe
+        type: choice
+        required: true
+        default: Debug
+        options: [Debug, Release, asan-ubsan, tsan]
+      target:
+        description: Exact registered CMake/CTest target name
+        type: string
+        required: true
+        default: SwaraXTCurrentPresetRestoreHeadlessTests
+permissions:
+  contents: read
+concurrency:
+  group: swaraprivate-native-test-probe-${{ github.ref }}-${{ inputs.architecture }}-${{ inputs.profile }}-${{ inputs.target }}
+  cancel-in-progress: false
+jobs:
+  probe:
+    name: probe (${{ inputs.architecture }}, ${{ inputs.profile }}, ${{ inputs.target }})
+    if: github.repository == 'Almeriya/SWARAPRIVATE'
+    runs-on: ${{ inputs.architecture == 'arm64' && 'macos-15' || 'macos-15-intel' }}
+    timeout-minutes: 240
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_16.4.app/Contents/Developer
+      SWARAXT_REPOSITORY_PRIVATE: ${{ github.event.repository.private }}
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+          submodules: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.12'
+      - name: Verify repository identity and pinned frontend
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REPOSITORY" = Almeriya/SWARAPRIVATE
+          test "$SWARAXT_REPOSITORY_PRIVATE" = false
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          python3 -m pip install cmake==3.31.6 ninja==1.11.1.4
+      - name: Targeted native compile and CTest (not qualification)
+        shell: bash
+        env:
+          RUNNER_ENVIRONMENT: ${{ runner.environment }}
+        run: >-
+          python3 scripts/macos/native_test_probe.py
+          --root "$RUNNER_TEMP/swara-native-test-probe"
+          --arch "${{ inputs.architecture }}"
+          --profile "${{ inputs.profile }}"
+          --target "${{ inputs.target }}"
+          --source-sha "$GITHUB_SHA"
+          --base-source-sha 5e7b967db0b52f773f382217a72c6c0c3ff6b8f7
+      - name: Preserve probe evidence including failures
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: mac-native-test-probe-${{ inputs.architecture }}-${{ inputs.profile }}-${{ inputs.target }}-${{ github.sha }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/swara-native-test-probe/*.log
+            ${{ runner.temp }}/swara-native-test-probe/*.json
+            ${{ runner.temp }}/swara-native-test-probe/*.xml
+            ${{ runner.temp }}/swara-native-test-probe/build/Testing/Temporary/LastTest.log*
+          if-no-files-found: warn
+          retention-days: 7
