@@ -14,6 +14,9 @@ import zipfile
 from processes import run_process, ProcessResult
 
 REPOSITORY = 'Almeriya/SWARAPRIVATE'
+# GitHub reports github.event.repository.private as this boolean string.
+# Almeriya/SWARAPRIVATE is public; do not change GitHub visibility.
+REPOSITORY_PRIVATE = 'false'
 JUCE_SHA = 'e18f7f506c0b96f2c738a0bcd7fe6467a5005ad8'
 SDK_SHA = '9fad9770f2ae8542ab1a548a68c1ad1ac690abe0'
 SEAL = 'CI_AD_HOC_SEALED_NOT_DEVELOPER_ID_SIGNED'
@@ -66,7 +69,8 @@ def owned_path(path, root):
 def hosted_root(root, source=None):
     require(os.environ.get('GITHUB_ACTIONS') == 'true', 'GitHub Actions is required')
     require(os.environ.get('GITHUB_REPOSITORY') == REPOSITORY, 'Authorized Almeriya/SWARAPRIVATE only')
-    require(os.environ.get('SWARAXT_REPOSITORY_PRIVATE') == 'true', 'Private repository event required')
+    require(os.environ.get('SWARAXT_REPOSITORY_PRIVATE') == REPOSITORY_PRIVATE,
+            'Authorized repository visibility required')
     require(os.environ.get('RUNNER_ENVIRONMENT') == 'github-hosted', 'Ephemeral GitHub-hosted runner required')
     root = owned_path(root, os.environ['RUNNER_TEMP'])
     if source is not None:

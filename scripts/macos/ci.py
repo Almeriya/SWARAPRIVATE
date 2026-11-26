@@ -21,7 +21,7 @@ import urllib.request
 from login_context import run_login
 from policy import (require, hosted_root, owned_path, run_process, compare_public, files_manifest,
                     check_bundle, safe_extract_zip, safe_extract_tar, revision, SEAL, SDK_SHA,
-                    HOST_ARITHMETIC, PRODUCTION_PARITY)
+                    HOST_ARITHMETIC, PRODUCTION_PARITY, REPOSITORY, REPOSITORY_PRIVATE)
 from infrastructure import PublicInfrastructure
 from dependency_overlay import apply as apply_dependency_overlay
 from native_reference import BASELINE_SHA
@@ -536,9 +536,9 @@ def main():
     args = parser.parse_args()
     require(revision(args.source_sha) == os.environ['GITHUB_SHA'], 'Source revision input mismatch')
     revision(args.base_source_sha)
-    require(os.environ.get('GITHUB_REPOSITORY') == 'Almeriya/SWARAPRIVATE' and
-            os.environ.get('SWARAXT_REPOSITORY_PRIVATE') == 'true',
-            'Authorized private Almeriya/SWARAPRIVATE execution only')
+    require(os.environ.get('GITHUB_REPOSITORY') == REPOSITORY and
+            os.environ.get('SWARAXT_REPOSITORY_PRIVATE') == REPOSITORY_PRIVATE,
+            'Authorized Almeriya/SWARAPRIVATE execution only')
     if args.task == 'gate':
         from gate import evaluate
         root = hosted_root(args.root, SOURCE)

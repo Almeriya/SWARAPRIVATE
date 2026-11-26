@@ -71,6 +71,8 @@ jobs:
           TSAN_SHARD: ${{ matrix.shard }}
           RETRY_TSAN_SHARD_A: ${{ inputs.retry-tsan-shard-a || false }}
         run: |
+          test "$GITHUB_REPOSITORY" = Almeriya/SWARAPRIVATE
+          test "$SWARAXT_REPOSITORY_PRIVATE" = false
           if [[ "$RETRY_TSAN_SHARD_A" == true && "$TSAN_SHARD" != a ]]; then
             echo "Retry requires Intel TSan shard A"
             exit 1

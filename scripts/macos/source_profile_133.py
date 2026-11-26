@@ -177,8 +177,19 @@ def compare_source_133(source, checkout_sha, base_sha, git_tree, original_base,
             (source / 'Source/Plugin/PluginEditor.h').read_text()
             and 'refreshRestoreNotification(' in editor,
             '1.3.3 editor LookAndFeel lifetime / restore notification missing')
-    require('SwaraXTHostStateSafetyTests' in tests and 'SwaraXTDefensiveHardeningTests' in tests,
-            '1.3.3 host-state / defensive tests missing')
+    require('SwaraXTHostStateSafetyTests' in tests and 'SwaraXTDefensiveHardeningTests' in tests
+            and 'AvrlibHdVowelPhaseWrapTests' in tests,
+            '1.3.3 host-state / defensive / vowel-wrap tests missing')
+    require('pngDeclaredSizeAllowed' in (source / 'Source/Ui/SwaraXtSkin.h').read_text(),
+            '1.3.3 PNG import size preflight missing')
+    require('jlimit(1, 4, ParameterCache::loadInt(cache.arpOctaves))' in
+            (source / 'Source/Engine/PatchBridge.cpp').read_text(),
+            '1.3.3 PatchBridge arp_range clamp missing')
+    require('ClampArpeggiatorRange' in
+            (source / 'Source/Engine/ShruthiPort/adapted/shruthi/part.cc').read_text()
+            and 'static_cast<uint16_t>(phase_noise)' in
+            (source / 'Source/Engine/ShruthiPort/include_first/avrlib_hd/vowel.h').read_text(),
+            '1.3.3 Shruthi Part / AVR vowel phase-wrap contracts missing')
     require('elseif(WIN32)' in deps and 'Juce901RestoreCompletion.cmake' in deps,
             'Windows restore-completion overlay wiring missing')
     require('if(APPLE)' not in deps and 'SWARAXT_JUCE_RESTORE_COMPLETION' not in deps,
@@ -187,11 +198,12 @@ def compare_source_133(source, checkout_sha, base_sha, git_tree, original_base,
     policy_text = (source / 'scripts/macos/policy.py').read_text()
     require("github.repository == 'Almeriya/SWARAPRIVATE'" in workflow
             and 'RIG-AUDIO/SW2' not in workflow
-            and "test \"$SWARAXT_REPOSITORY_PRIVATE\" = true" in workflow,
+            and "test \"$SWARAXT_REPOSITORY_PRIVATE\" = false" in workflow,
             'macOS qualification workflow still uses retired repository identity')
     require("REPOSITORY = 'Almeriya/SWARAPRIVATE'" in policy_text
-            and "SWARAXT_REPOSITORY_PRIVATE') == 'true'" in policy_text,
-            'macOS CI policy still requires retired public SW2 identity')
+            and "REPOSITORY_PRIVATE = 'false'" in policy_text
+            and "SWARAXT_REPOSITORY_PRIVATE') == REPOSITORY_PRIVATE" in policy_text,
+            'macOS CI policy must pin Almeriya/SWARAPRIVATE at its authorized public visibility')
     require(new.get('third_party/shruthi-1') == old.get('third_party/shruthi-1'),
             'Shruthi submodule pin changed')
     return {'base_source_sha': original_base, 'checkout_sha': checkout_sha,

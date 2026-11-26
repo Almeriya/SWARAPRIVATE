@@ -21,6 +21,7 @@
 #include "shruthi/part.h"
 
 #include <string.h>
+#include <cmath>
 
 #include "Engine/FreeCvPitch.h"
 #include "Engine/MidiInputTuning.h"
@@ -40,6 +41,18 @@
 using namespace avrlib;
 
 namespace shruthi {
+
+namespace {
+uint8_t TransposeSequencerNote(uint8_t note, int8_t transposition) {
+  int16_t transposed = static_cast<int16_t>(note) + transposition;
+  while (transposed < 0) transposed += 12;
+  while (transposed > 127) transposed -= 12;
+  return static_cast<uint8_t>(transposed);
+}
+uint8_t ClampArpeggiatorRange(uint8_t range) {
+  return range < 1 ? 1 : (range > 4 ? 4 : range);
+}
+}  // namespace
 
 void Part::Init(HostAudioRing& audio_out,
                 avrlib::Random& random,
@@ -475,7 +488,14 @@ void Part::AlignExternalClock(uint64_t ticksBeforeNextClock) {
     arp_seq_step_ = 0xff;
     arp_seq_prescaler_ = 0;
   } else {
-    arp_seq_step_ = static_cast<uint8_t>(((ticksBeforeNextClock - 1) / duration) & 0x0f);
+    // NextStep() wraps on pattern_size. A 16-step mask leaves lengths 1–15
+    // one or more steps away from uninterrupted playback once the cycle repeats.
+    // Length 16 keeps the original mask: stepIndex % 16 == stepIndex & 0x0f.
+    const uint64_t stepIndex = (ticksBeforeNextClock - 1) / duration;
+    const uint8_t length = sequencer_settings_.pattern_size;
+    arp_seq_step_ = length >= 1 && length < 16
+        ? static_cast<uint8_t>(stepIndex % length)
+        : static_cast<uint8_t>(stepIndex & 0x0f);
     arp_seq_prescaler_ = static_cast<uint8_t>(ticksBeforeNextClock % duration);
   }
   lfo_step_[0] = static_cast<uint16_t>(ticksBeforeNextClock % 1536);
@@ -526,9 +546,10 @@ void Part::Start(bool internal) {
   arp_seq_running_ = true;
   arp_previous_note_ = 0;
   seq_transposition_ = 0;
+  const uint8_t arp_range = ClampArpeggiatorRange(sequencer_settings_.arp_range);
   if (sequencer_settings_.arp_direction == ARPEGGIO_DIRECTION_DOWN) {
     arp_note_ = pressed_keys_.size() - 1;
-    arp_octave_ = sequencer_settings_.arp_range - 1;
+    arp_octave_ = arp_range - 1;
     arp_direction_ = -1;
   } else {
     arp_note_ = 0;
@@ -594,8 +615,9 @@ void Part::ClockArpeggiator() {
   uint8_t num_notes = pressed_keys_.size();
   if (sequencer_settings_.mode() == SEQUENCER_MODE_ARP &&
       has_note && num_notes) {
+    const uint8_t arp_range = ClampArpeggiatorRange(sequencer_settings_.arp_range);
     // Update arepggiator note/octave counter.
-    if (num_notes == 1 && sequencer_settings_.arp_range == 1) {
+    if (num_notes == 1 && arp_range == 1) {
       // This is a corner case for the Up/down pattern code.
       // Get it out of the way.
       arp_note_ = 0;
@@ -605,8 +627,8 @@ void Part::ClockArpeggiator() {
         uint8_t random_byte = random_ != nullptr ? random_->state_msb() : 0;
         arp_octave_ = random_byte & 0xf;
         arp_note_ = (random_byte & 0xf0) >> 4;
-        while (arp_octave_ >= sequencer_settings_.arp_range) {
-          arp_octave_ -= sequencer_settings_.arp_range;
+        while (arp_octave_ >= arp_range) {
+          arp_octave_ -= arp_range;
         }
         while (arp_note_ >= num_notes) {
           arp_note_ -= num_notes;
@@ -619,17 +641,17 @@ void Part::ClockArpeggiator() {
             arp_note_ = arp_direction_ > 0 ? 0 : num_notes - 1;
           }
           wrapped = false;
-          if (arp_octave_ >= sequencer_settings_.arp_range || arp_octave_ < 0) {
+          if (arp_octave_ >= arp_range || arp_octave_ < 0) {
             arp_octave_ = arp_direction_ > 0
                 ? 0
-                : sequencer_settings_.arp_range - 1;
+                : arp_range - 1;
             if (sequencer_settings_.arp_direction == \
                 ARPEGGIO_DIRECTION_UP_DOWN) {
               arp_direction_ = -arp_direction_;
               arp_note_ = arp_direction_ > 0 ? 1 : num_notes - 2;
               arp_octave_ = arp_direction_ > 0
                   ? 0
-                  : sequencer_settings_.arp_range - 1;
+                  : arp_range - 1;
               wrapped = true;
             }
           }
@@ -716,8 +738,7 @@ void Part::ClockSequencer() {
       int8_t transposition = pressed_keys_.size() ?
           pressed_keys_.most_recent_note().note - 60 : seq_transposition_;
       seq_transposition_ = transposition;
-      int8_t note = step.note() + transposition;
-      while (note < 0) note += 12;
+      const uint8_t note = TransposeSequencerNote(step.note(), transposition);
       if (!step.legato()) {
         StopSequencerArpeggiatorNotes();
         InternalNoteOn(note, step.velocity());
@@ -926,7 +947,7 @@ void Part::ProcessBlockInternal(bool render_audio) {
       swing_amount_ = static_cast<int8_t>(S8U8MulShift8(
           static_cast<int8_t>(ResourcesManager::Lookup<int16_t, uint8_t>(
               LUT_RES_GROOVE_SWING + sequencer_settings_.seq_groove_template,
-              arp_seq_step_)),
+              arp_seq_step_ & 0x0f)),
           sequencer_settings_.seq_groove_amount) >> 1);
       Clock(true);
       clock_.Update(sequencer_settings_.seq_tempo);
@@ -974,8 +995,14 @@ void Part::ProcessControlBlock() {
 /* static */
 void Part::AllNotesOff() {
   if (ignore_note_off_messages_) {
-    // This is a fix for the Roland machines that send the all notes off
-    // message every time all keys in a chord are released.
+    // Roland controllers can send CC 123 while sustain is held. Keep the
+    // chord sounding, but mark each live key for release when pedal lifts.
+    for (uint8_t i = 1; i <= pressed_keys_.max_size(); ++i) {
+      NoteEntry* entry = pressed_keys_.mutable_note(i);
+      if (entry->velocity != 0) {
+        entry->velocity = static_cast<uint8_t>(entry->velocity | 0x80);
+      }
+    }
     return;
   }
   poly_allocator_.Clear();
@@ -1170,14 +1197,16 @@ void Part::clockSequencerScale(uint8_t step_index) {
   int8_t transposition = pressed_keys_.size() ?
       pressed_keys_.most_recent_note().note - 60 : seq_transposition_;
   seq_transposition_ = transposition;
-  int8_t note = step.note() + transposition;
-  while (note < 0) note += 12;
-  const uint8_t identity = static_cast<uint8_t>(note);
+  const uint8_t identity = TransposeSequencerNote(step.note(), transposition);
   int degree = scale_degrees_[step_index & 15];
   const auto* tuning = static_cast<const swaraxt::tuning::PublishedTuning*>(scale_tuning_);
   if (pressed_keys_.size() && tuning != nullptr)
     degree += tuning->transpositionDegrees(pressed_keys_.most_recent_note().note);
   const double hz = tuning != nullptr ? tuning->hzForDegree(degree) : 0.0;
+  if (!std::isfinite(hz) || hz <= 0.0) {
+    StopSequencerArpeggiatorNotes();
+    return;
+  }
   const uint16_t pitch = swaraxt::ScalePitch::toVoicePitchFromHz(hz);
   if (!step.legato()) {
     StopSequencerArpeggiatorNotes();
@@ -1209,9 +1238,7 @@ void Part::clockSequencerQuantizedCv(uint8_t step_index) {
   int8_t transposition = pressed_keys_.size() ?
       pressed_keys_.most_recent_note().note - 60 : seq_transposition_;
   seq_transposition_ = transposition;
-  int8_t note = step.note() + transposition;
-  while (note < 0) note += 12;
-  const uint8_t identity = static_cast<uint8_t>(note);
+  const uint8_t identity = TransposeSequencerNote(step.note(), transposition);
   const int32_t units = swaraxt::FreeCvPitch::clampUnits(
       free_cv_units_[step_index & 15]
       + static_cast<int32_t>(transposition) * swaraxt::FreeCvPitch::kUnitsPerSemitone);
@@ -1252,9 +1279,7 @@ void Part::clockSequencerFreeCv(uint8_t step_index) {
   int8_t transposition = pressed_keys_.size() ?
       pressed_keys_.most_recent_note().note - 60 : seq_transposition_;
   seq_transposition_ = transposition;
-  int8_t note = step.note() + transposition;
-  while (note < 0) note += 12;
-  const uint8_t identity = static_cast<uint8_t>(note);
+  const uint8_t identity = TransposeSequencerNote(step.note(), transposition);
   const int32_t units = free_cv_units_[step_index & 15]
       + static_cast<int32_t>(transposition) * swaraxt::FreeCvPitch::kUnitsPerSemitone;
   const uint16_t pitch = swaraxt::FreeCvPitch::toVoicePitch(units);
