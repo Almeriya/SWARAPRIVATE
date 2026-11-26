@@ -10,7 +10,7 @@ This report records actual work on `port/swaraxt-133-macos-surgical`. Historical
 | --- | --- | --- |
 | Destination Mac 1.3.1 | `Almeriya/SWARAPRIVATE` `main` | `64fa3f6640706db5ae7181bd9e694828b0284e3b` |
 | Official product 1.3.3 | `montronedsp/SWARAXT` `v1.3.3` | `6ea598e47fb0347d23ffa538a64b02318187a7ed` |
-| Integration HEAD | `Almeriya/SWARAPRIVATE` `port/swaraxt-133-macos-surgical` | see amendment — GHA-only rebuild |
+| Integration HEAD | `Almeriya/SWARAPRIVATE` `port/swaraxt-133-macos-surgical` | `ca3ccf363d5706781a30a5310b1408f719b64ee3` |
 
 Frozen inputs were verified before edits. Later public `main` packaging/README/Linux-installer commits were not tracked.
 
@@ -145,31 +145,96 @@ Staged commits were scanned for credential filenames (`.p8`, `.p12`, `.pfx`, Aut
 Branch: `port/swaraxt-133-macos-surgical`  
 PR: https://github.com/Almeriya/SWARAPRIVATE/pull/1 (keep unmerged while gates remain blocked)
 
-## Untested / remaining blockers
+## Remaining blockers
 
-- Hosted Intel preflight + universal `build` (downloadable AU/VST3 artifact)
-- One hosted `full` qualification of the final source SHA (Intel + ARM64)
-- Download hosted universal candidate to this Intel Mac (test machine only)
-- Local validators / REAPER 7.86 against the hosted artifact; preserve system 1.3.1
-- Independent Mac audio-reference admission
-- Apple JUCE restore-completion overlay (explicitly not enabled)
+- Hosted `full` matrix on `ca3ccf3` still running / not yet complete (smoke + native Intel/ARM + audio gate)
+- Independent Mac audio-reference admission remains **REVIEW_REQUIRED**
+- AU fourcc collision `aumu SwXT MnTr` with system 1.3.1 — REAPER AU load version must be confirmed by owner; do not move system AU
+- Interactive REAPER GUI / transport / preset / Dual SVF listening: **OWNER ACTION REQUIRED**
+- Apple JUCE restore-completion overlay still not enabled
 
 ## Final assessment
 
-**PARTIAL / BLOCKED** for qualification and release.
+**PARTIAL / BLOCKED** for merge and release.
 
-Production Source/ matches official 1.3.3 except the five documented Apple exceptions. Compilation and automated qualification move exclusively to GitHub Actions. This Intel Mac is a **test machine** only.
+Hosted `build` + local validators + deterministic REAPER offline renders are green for the hosted universal VST3. Full matrix and audio-authority gates remain open. PR #1 stays unmerged.
 
 ---
 
 ## Amendment — local Intel plugin build (superseded for compilation)
 
-Historical local x86_64 AU/VST3 work and auval notes remain evidence only. **Do not resume local product or CTest compilation.** Nested `avrlib` was never committed. System `/Library/Audio/Plug-Ins/Components/Swara XT.component` (1.3.1) must stay installed. Reversible user-folder `1.3.3-dev-*` copies may be replaced by the hosted universal artifact later.
+Historical local x86_64 AU/VST3 work remains evidence only. **Do not resume local product or CTest compilation.** System `/Library/Audio/Plug-Ins/Components/Swara XT.component` (1.3.1) must stay installed.
 
 ## Amendment — GHA-only rebuild after PR review
 
-1. Local ninja/CTest for this mission was stopped.
-2. Visibility policy corrected to public: `REPOSITORY_PRIVATE = 'false'` in `policy.py` / `ci.py` / workflows / profile / tests.
-3. Eight remaining 1.3.3 production diffs reconciled; vowel-wrap public regression registered. Source parity: 185 identical + 5 Apple exceptions (`RealFromChars.h` Apple-only).
-4. Qualification workflow push default is `build` (not `full`).
-5. Next step: push branch → hosted preflight/build → download universal artifact → REAPER/validators locally → one `full` matrix on the final SHA.
+Visibility `SWARAXT_REPOSITORY_PRIVATE=false`; production Source/ parity complete except five Apple exceptions; push default mode `build`.
+
+## Amendment — final validation of hosted `ca3ccf3`
+
+### Candidate
+
+| Item | Value |
+| --- | --- |
+| Source SHA | `ca3ccf363d5706781a30a5310b1408f719b64ee3` |
+| Build run (`mode=build`) | https://github.com/Almeriya/SWARAPRIVATE/actions/runs/45801959665 **success** |
+| Full run (`mode=full`) | https://github.com/Almeriya/SWARAPRIVATE/actions/runs/45807588777 (in progress at report time) |
+| Local test root | `~/Desktop/SWARA-XT-1.3.3-MAC-PRIVATE-TEST/` |
+| Archive SHA-256 | `8a5a262580a90a2d29eda9c84a72af32d8f24193be1cbdc9ee0f633f3218834a` (matches `archive-sha256.txt`) |
+| AU Mach-O SHA-256 | `912ebebfb5e289ab1c5f4f3c6076f2860e2a527aabf041578163a7534bfc7c06` |
+| VST3 Mach-O SHA-256 | `17a48de53ac821cfc0e1794bca6b3ed2cb316dbfc82479f1710f8913c4d860dc` |
+| Architectures | `x86_64` + `arm64` (`lipo`) |
+| Signature | ad-hoc (`flags=0x2`), verified; **not** Developer ID |
+| Provenance | `qualification_status=BUILD_PASS_UNQUALIFIED`, JUCE `e18f7f5…`, Xcode 16.4 |
+| QA packages | ZIP/PKG/source hashes verified via `Packages/SHA256SUMS` — PKG **not** installed |
+
+### Safe install
+
+User-folder only (system 1.3.1 untouched):
+
+- `~/Library/Audio/Plug-Ins/Components/Swara XT 1.3.3-hosted-universal.component`
+- `~/Library/Audio/Plug-Ins/VST3/Swara XT 1.3.3-hosted-universal.vst3`
+
+Prior `1.3.3-dev-intel` user copies preserved. Rollback: delete the two `hosted-universal` folders.
+
+### Local validators (hosted binaries)
+
+| Tool | Command / target | Result |
+| --- | --- | --- |
+| Steinberg VST3 validator 3.8.0 | path to hosted `.vst3` | **47 passed, 0 failed** |
+| pluginval 1.0.4 | `--strictness-level 10` on hosted VST3 | **SUCCESS** |
+| pluginval 1.0.4 | `--strictness-level 10` on hosted AU | **SUCCESS** (embedded auval reported Component Version **1.3.3 / 0x10303**) |
+| `auval -v aumu SwXT MnTr` | fourcc (ambiguous with system 1.3.1) | Bound **1.3.3 (0x10303)**; **AU VALIDATION SUCCEEDED** |
+
+Evidence: `Evidence/09-steinberg.txt`, `10-pluginval-vst3.txt`, `11-12-pluginval-au-auval.txt`.
+
+### REAPER 7.86
+
+Handmade RPP FX lines initially failed (“effects … not available”). Fixed by saving a project after `TrackFX_AddByName` so REAPER encodes:
+
+`VST3i: Swara XT (MontroneDSP)` + `"Swara XT 1.3.3-hosted-universal.vst3"`.
+
+| Project | Result |
+| --- | --- |
+| `REAPER/validation-vst3-working.rpp` | Hosted VST3 confirmed in FX chain |
+| `REAPER/validation-vst3-hosted-{44100,48000,96000}.rpp` | Offline render **non-silent** |
+| `REAPER/validation-au-working.rpp` | Offline render **non-silent**; AU identity still fourcc-ambiguous |
+
+Offline render summary (`Evidence/21-render-analysis.txt`):
+
+| Render | sr | peak | rms | notes |
+| --- | --- | --- | --- | --- |
+| VST3 hosted 44.1 kHz | 44100 | 0.322377 | 0.033395 | finite; tiny DC |
+| VST3 hosted 48 kHz | 48000 | 0.322114 | 0.033395 | finite |
+| VST3 hosted 96 kHz | 96000 | 0.322822 | 0.033394 | finite |
+| AU working 44.1 kHz | 44100 | 0.322421 | 0.038212 | finite; MIDI includes CC120 |
+| VST3 44.1 kHz pass1 vs pass2 | — | — | — | **PCM identical** (byte SHA may differ in non-PCM RIFF fields) |
+
+**OWNER ACTION REQUIRED:** GUI open/close, multi-instance, transport seek/loop/tempo, Classic vs Dual SVF listening, presets/Scala, confirm AU instance is 1.3.3 while system 1.3.1 remains installed.
+
+### Audio authority
+
+Still **REVIEW_REQUIRED**. No goldens regenerated. Historical Dual SVF / ARM fingerprint failures preserved.
+
+### Security
+
+No Apple credentials, Developer ID, notarization, or keychain access. CI secret-free; candidate ad-hoc only. QA PKG not published.
