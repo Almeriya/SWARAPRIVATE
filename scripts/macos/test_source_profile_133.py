@@ -22,7 +22,11 @@ class SourceProfile133Tests(unittest.TestCase):
         for p in ('CMakeLists.txt', 'Tests/CMakeLists.txt', 'scripts/macos/policy.py',
                   'scripts/macos/test_ci.py', 'scripts/macos/source_profile_133.py',
                   'scripts/macos/source_profile_133_manifest.json',
-                  'scripts/macos/test_source_profile_133.py'):
+                  'scripts/macos/test_source_profile_133.py',
+                  'cmake/Dependencies.cmake',
+                  'cmake/Juce901RestoreCompletion.cmake',
+                  'cmake/Juce901RestoreCompletion.patch',
+                  'cmake/Juce901PngError.cmake'):
             cls.base.setdefault(p, 'baseline-sha')
             cls.current[p] = 'reviewed-sha'
         cls.base['third_party/shruthi-1'] = cls.current['third_party/shruthi-1'] = 'pinned'

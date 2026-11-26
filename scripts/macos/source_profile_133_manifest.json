@@ -110,10 +110,10 @@
     "Source/Engine/SwaraXtEngine.h": "d9bdefd7fba851a74a9acd01d354a84000ddd7d7",
     "Source/Plugin/ApvtsFactoryPresetData.h": "68d2eec7d7bbb5199b722a435be78e9e6466b829",
     "Source/Plugin/ApvtsFactoryPresets.h": "1065347bbd0b00c58d2399b27db896152c324dcc",
-    "Source/Plugin/PluginEditor.cpp": "ee41ce0d4220ab018a1e693139a31e45f292d59b",
-    "Source/Plugin/PluginEditor.h": "86d20ab2c652ad262c3cfbc96e89d95c0345e185",
-    "Source/Plugin/PluginProcessor.cpp": "f27569efe93b8c12ee78d27be1853b82405f2dc3",
-    "Source/Plugin/PluginProcessor.h": "b2280cd09e5e643ad6a2a2bda98401d2d52719a2",
+    "Source/Plugin/PluginEditor.cpp": "b2e474391d1276a6022fa2234430cb74d7dcd7f6",
+    "Source/Plugin/PluginEditor.h": "dea0ea61f958e99ad7c1f578272e4e83061f853a",
+    "Source/Plugin/PluginProcessor.cpp": "51303a9970793d942c3124811d39f9a10d2c0ea9",
+    "Source/Plugin/PluginProcessor.h": "2638cbcd9e1e9f6e5b4fa37b2e9eb103a4c4278e",
     "Source/Plugin/SequenceParameters.h": "8455a34154ffb8e6d0468a91ead025f6a29a323e",
     "Source/Plugin/ShruthiFactoryPresetData.h": "563f1382b9ea5df911a780cab2625639f4927712",
     "Source/Plugin/ShruthiFactoryPresets.cpp": "7b236f0f6870a073a95054b23843faf1e8c1e457",
@@ -235,7 +235,12 @@
     "Tests/Sequencer/SequencerSafetyBridgeTestsMain.cpp": "26060dbc0a11635e1cc759fb158ba6ff7642e48d",
     "Tests/Sequencer/SequenceNotificationTestsMain.cpp": "418d7df8df1dcbbf4cf9489c568b4320857d55bb",
     "Tests/Sequencer/SequencerTestsMain.cpp": "13b068e480eab5546a588b0e2cd53f6a14f43321",
-    "Tests/Sequencer/SequencerMidiTestsMain.cpp": "1bfe16b1fccc222f689e31b5c7a37bfbdb74e663"
+    "Tests/Sequencer/SequencerMidiTestsMain.cpp": "1bfe16b1fccc222f689e31b5c7a37bfbdb74e663",
+    "Tests/Presets/PresetStateRestoreTestsMain.cpp": "076f2002d5bb58ca3a96add35127a5a1bca74f68",
+    "Tests/Presets/StatePublicationTestsMain.cpp": "207bf050d62ac4f5a3eabb5fb8cb4e9285fe7b4e",
+    "Tests/Presets/HostStateSafetyTestsMain.cpp": "9854c5c2748088efb0bb718b74fce22bffc60a3b",
+    "Tests/Presets/RestoreCompletionTestsMain.cpp": "c2d4fb62f7f0f0ee0c629358e35571d121846844",
+    "Tests/Host/DefensiveHardeningTestsMain.cpp": "b8b9c7a768ccc722e21c6041fef387ccec347ef0"
   },
   "protected_mac_tests": {
     "Tests/Filter/DualSvfSection2TestsMain.cpp": "59a37d98f4cf1f41e1e27008bf5f5c966a61fce2",

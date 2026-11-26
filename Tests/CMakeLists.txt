@@ -416,6 +416,31 @@ swaraxt_add_plugin_console_test(SwaraXTShruthiFactoryPresetTests Presets/Shruthi
 swaraxt_add_plugin_console_test(SwaraXTFilterPresetAuthorityTests Architecture/FilterPresetAuthorityTests.cpp)
 target_compile_definitions(SwaraXTFilterPresetAuthorityTests PRIVATE SWARAXT_ENABLE_SHRUTHI_DEBUG_TAPS=1 JUCE_MODAL_LOOPS_PERMITTED=1)
 swaraxt_add_plugin_console_test(SwaraXTPresetStateRestoreTests Presets/PresetStateRestoreTestsMain.cpp)
+swaraxt_add_plugin_console_test(SwaraXTHostStateSafetyTests Presets/HostStateSafetyTestsMain.cpp)
+target_compile_definitions(SwaraXTHostStateSafetyTests PRIVATE
+    SWARAXT_ENABLE_TUNING_OWNERSHIP_TESTS=1 SWARAXT_ENABLE_STATE_PUBLICATION_TESTS=1
+    SWARAXT_ENABLE_SEQUENCE_SNAPSHOT_TESTS=1)
+swaraxt_add_plugin_console_test(SwaraXTRestoreCompletionTests Presets/RestoreCompletionTestsMain.cpp)
+target_compile_definitions(SwaraXTRestoreCompletionTests PRIVATE
+    SWARAXT_ENABLE_TUNING_OWNERSHIP_TESTS=1 SWARAXT_ENABLE_STATE_PUBLICATION_TESTS=1
+    SWARAXT_ENABLE_SEQUENCE_SNAPSHOT_TESTS=1)
+if(SWARAXT_DIAGNOSTICS_MODULE AND DIAG_SANITIZER STREQUAL "rtsan")
+    set_property(SOURCE Presets/HostStateSafetyTestsMain.cpp Presets/RestoreCompletionTestsMain.cpp
+        Sequencer/SequencerMidiTestsMain.cpp APPEND PROPERTY
+        COMPILE_DEFINITIONS SWARAXT_HOST_RESTORE_RTSAN=1)
+endif()
+swaraxt_enable_warnings_as_errors(SwaraXTHostStateSafetyTests)
+swaraxt_enable_warnings_as_errors(SwaraXTRestoreCompletionTests)
+set_tests_properties(SwaraXTHostStateSafetyTests PROPERTIES TIMEOUT 120)
+set_tests_properties(SwaraXTRestoreCompletionTests PROPERTIES TIMEOUT 120)
+foreach(mode listeners preempt root allocation admission)
+    add_test(NAME SwaraXTRestoreCompletion-${mode} COMMAND SwaraXTRestoreCompletionTests ${mode})
+    set_tests_properties(SwaraXTRestoreCompletion-${mode} PROPERTIES LABELS "host-state;exception" TIMEOUT 45)
+endforeach()
+foreach(phase decode tuning snapshot parameter sequence post metadata)
+    add_test(NAME SwaraXTHostRestoreFault-${phase} COMMAND SwaraXTHostStateSafetyTests fault-${phase})
+    set_tests_properties(SwaraXTHostRestoreFault-${phase} PROPERTIES LABELS "host-state;exception" TIMEOUT 30)
+endforeach()
 swaraxt_add_plugin_console_test(SwaraXTRestoreTransactionTests Presets/RestoreTransactionTestsMain.cpp)
 target_compile_definitions(SwaraXTRestoreTransactionTests PRIVATE
     SWARAXT_ENABLE_TUNING_OWNERSHIP_TESTS=1 SWARAXT_ENABLE_STATE_PUBLICATION_TESTS=1
@@ -591,6 +616,19 @@ swaraxt_add_plugin_console_test(SwaraXTMidiCc120EmergencySilenceTests Sequencer/
 target_compile_definitions(SwaraXTMidiCc120EmergencySilenceTests PRIVATE JUCE_MODAL_LOOPS_PERMITTED=1)
 swaraxt_enable_warnings_as_errors(SwaraXTMidiCc120EmergencySilenceTests)
 set_tests_properties(SwaraXTMidiCc120EmergencySilenceTests PROPERTIES TIMEOUT 180 LABELS "headless;midi;audio")
+swaraxt_add_plugin_console_test(SwaraXTDefensiveHardeningTests Host/DefensiveHardeningTestsMain.cpp)
+target_compile_definitions(SwaraXTDefensiveHardeningTests PRIVATE JUCE_MODAL_LOOPS_PERMITTED=1)
+set(defensive_test_scratch "${CMAKE_BINARY_DIR}/defensive-hardening-scratch")
+set(defensive_test_home "${CMAKE_BINARY_DIR}/defensive-hardening-home")
+file(MAKE_DIRECTORY "${defensive_test_scratch}"
+    "${defensive_test_home}/AppData/Roaming" "${defensive_test_home}/AppData/Local")
+set_property(SOURCE Host/DefensiveHardeningTestsMain.cpp APPEND PROPERTY
+    COMPILE_DEFINITIONS SWARAXT_DEFENSIVE_TEST_ROOT="${defensive_test_scratch}")
+set_tests_properties(SwaraXTDefensiveHardeningTests PROPERTIES
+    WORKING_DIRECTORY "${defensive_test_scratch}"
+    ENVIRONMENT "SWARAXT_DEFENSIVE_TEST_DIR=${defensive_test_scratch};APPDATA=${defensive_test_home}/AppData/Roaming;LOCALAPPDATA=${defensive_test_home}/AppData/Local;USERPROFILE=${defensive_test_home}")
+swaraxt_enable_warnings_as_errors(SwaraXTDefensiveHardeningTests)
+set_tests_properties(SwaraXTDefensiveHardeningTests PROPERTIES TIMEOUT 120 LABELS "headless;defensive-hardening")
 
 add_executable(SwaraXTIR3109BoardTests Architecture/Ir3109BoardTests.cpp)
 target_include_directories(SwaraXTIR3109BoardTests PRIVATE "${CMAKE_SOURCE_DIR}/Source")

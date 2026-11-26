@@ -19,6 +19,10 @@ _ALLOWED_META = {
     'scripts/macos/test_source_profile_133.py',
     'docs/macos/SWARA-133-SOURCE-INVENTORY.md',
     'docs/macos/SWARA-133-SURGICAL-PORT-REPORT.md',
+    'cmake/Dependencies.cmake',
+    'cmake/Juce901RestoreCompletion.cmake',
+    'cmake/Juce901RestoreCompletion.patch',
+    'cmake/Juce901PngError.cmake',
 }
 _BUILD_RECOVERY_META = {
     'scripts/macos/build_recovery_probe.py',
@@ -157,6 +161,22 @@ def compare_source_133(source, checkout_sha, base_sha, git_tree, original_base,
     require('groove::unitsBeforeTick(' in engine and 'hostClockTickAtPpq(' in engine
             and 'currentHostTimingKey(' in engine,
             '1.3.3 host groove clock mapping missing')
+    processor = (source / 'Source/Plugin/PluginProcessor.cpp').read_text()
+    editor = (source / 'Source/Plugin/PluginEditor.cpp').read_text()
+    deps = (source / 'cmake/Dependencies.cmake').read_text()
+    require('isBusesLayoutSupported(' in processor and 'maxUserPresetFileBytes' in processor
+            and 'publishRestoreNotification(' in processor,
+            '1.3.3 processor restore/preset/bus contracts missing')
+    require('std::shared_ptr<swaraxt::ui::SwaraXtLookAndFeel>' in
+            (source / 'Source/Plugin/PluginEditor.h').read_text()
+            and 'refreshRestoreNotification(' in editor,
+            '1.3.3 editor LookAndFeel lifetime / restore notification missing')
+    require('SwaraXTHostStateSafetyTests' in tests and 'SwaraXTDefensiveHardeningTests' in tests,
+            '1.3.3 host-state / defensive tests missing')
+    require('elseif(WIN32)' in deps and 'Juce901RestoreCompletion.cmake' in deps,
+            'Windows restore-completion overlay wiring missing')
+    require('if(APPLE)' not in deps and 'SWARAXT_JUCE_RESTORE_COMPLETION' not in deps,
+            'Apple must not enable unverified SWARAXT_JUCE_RESTORE_COMPLETION')
     require(new.get('third_party/shruthi-1') == old.get('third_party/shruthi-1'),
             'Shruthi submodule pin changed')
     return {'base_source_sha': original_base, 'checkout_sha': checkout_sha,
