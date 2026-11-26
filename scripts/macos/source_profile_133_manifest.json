@@ -16,7 +16,7 @@
     "Source/Engine/DspBoard/BoardResources.cpp": "52634f8b232b619356d21477ce0da17f7caad5d6",
     "Source/Engine/DspBoard/BoardResources.h": "5deb3099e7b11d98a47c43f41626d0d14ca4dc3e",
     "Source/Engine/DspBoard/BoardResponse.h": "43c021b9a1c2fb5e2cd25d3168d34fcfce6c6b23",
-    "Source/Engine/Filter/Circuit/Ir3109BoardCore.h": "3778b214d092bfcc0cc737525175b89ddf2a68a1",
+    "Source/Engine/Filter/Circuit/Ir3109BoardCore.h": "79fc4103d03a67e30fa9db293d5e5bea0c2301c4",
     "Source/Engine/Filter/Circuit/Ir3109Pole.h": "db941806bf8d2f5be6a639f0a7a09ffd89e4f8cf",
     "Source/Engine/Filter/Circuit/Ir3109Types.h": "60bc0c95818e01042f0b666e2df4ccea7be9aa1b",
     "Source/Engine/Filter/Control/CutoffMapper.h": "119b4c08afbe0c39b66584ce7705c8027683248e",
@@ -26,7 +26,7 @@
     "Source/Engine/Filter/ShruthiSvfSection2Control.h": "2bc097eb90f83455badde27471586173f621be18",
     "Source/Engine/Filter/Smr4InputCoupling.h": "d786c089ac97ef30317caf45123452b33fee71a1",
     "Source/Engine/Filter/SwaraXtFilter.cpp": "d98fedbf92bdddc0f3800a03b7da1a836a076343",
-    "Source/Engine/Filter/SwaraXtFilter.h": "5a4b3c418c314e40a9954f3e334865a78c7951e6",
+    "Source/Engine/Filter/SwaraXtFilter.h": "3a59422d6fef99692d4997c2353ddcc55fd4f593",
     "Source/Engine/FreeCvPitch.h": "725f237658b006d0625ccffdb75c70712f400607",
     "Source/Engine/HostTransport.h": "a4ea3088abc33e7cdfec101fde969e5b61d84fe4",
     "Source/Engine/MidiInputTuning.h": "91811b907a03aad3b7defa35ef6e5eef663ff970",
@@ -105,8 +105,8 @@
     "Source/Engine/ShruthiPort/include_first/shruthi/sequencer_settings.h": "1e7344b8acf310f4e9d7a90eeb68bbd193837120",
     "Source/Engine/ShruthiPort/include_first/shruthi/storage.h": "2cdff3713c0cdc4ee2459f77f3705d16cde6ea1a",
     "Source/Engine/ShruthiPort/include_first/swaraxt/shruthi_host.h": "7f7fb5bdaad8aafed1a42be114f93d018bdbe831",
-    "Source/Engine/SwaraXtEngine.cpp": "6a017d6523c354b3b65610f96ebf29ababc7fe9c",
-    "Source/Engine/SwaraXtEngine.h": "ec25fa08cc865c385c5cad74b180ce5a5fffed17",
+    "Source/Engine/SwaraXtEngine.cpp": "597fbe594c5d2a4ad51c413e55d553902f0e7166",
+    "Source/Engine/SwaraXtEngine.h": "5af02b7b06d215f4b533f4bf2d1515b923fad2e4",
     "Source/Plugin/ApvtsFactoryPresetData.h": "68d2eec7d7bbb5199b722a435be78e9e6466b829",
     "Source/Plugin/ApvtsFactoryPresets.h": "1065347bbd0b00c58d2399b27db896152c324dcc",
     "Source/Plugin/PluginEditor.cpp": "ee41ce0d4220ab018a1e693139a31e45f292d59b",
@@ -214,7 +214,10 @@
     "Tests/avrlib_hd/FilterParityTestsMain.cpp": null,
     "Tests/avrlib_hd/FilterUnitTestsMain.cpp": null,
     "Tests/Filter/CutoffContractTestsMain.cpp": "b5dca1529b3d7c2c79a0f675fd0386fa411b6c18",
-    "Tests/Tuning/TuningTableTestsMain.cpp": "5c9c4fc3f33b6748d1f85ef5922a980c9dd77951"
+    "Tests/Tuning/TuningTableTestsMain.cpp": "5c9c4fc3f33b6748d1f85ef5922a980c9dd77951",
+    "Tests/Architecture/FilterControlTests.cpp": "50c49cc08e72f8c95fe45fb830921fb885be72dd",
+    "Tests/Architecture/Ir3109BoardTests.cpp": "5b4b3c9826f457b34b7bc3b6993e2140afa2673c",
+    "Tests/Filter/CutoffAuthorityTests.cpp": "1138e6883061bb95eafed798c4b2c1061db53074"
   },
   "protected_mac_tests": {
     "Tests/Filter/DualSvfSection2TestsMain.cpp": "59a37d98f4cf1f41e1e27008bf5f5c966a61fce2",
@@ -244,6 +247,7 @@
     "resources/Skin/Examples/README.md": "7f46467048f9234407dc0219cc5228fef8e49db2"
   },
   "allowed_mac_docs": [
+    "docs/CUTOFF_FINE_PATH.md",
     "docs/macos/SWARA-133-SOURCE-INVENTORY.md",
     "docs/macos/SWARA-133-SURGICAL-PORT-REPORT.md"
   ]

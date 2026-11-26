@@ -558,6 +558,12 @@ target_include_directories(SwaraXTIR3109BoardTests PRIVATE "${CMAKE_SOURCE_DIR}/
 swaraxt_enable_warnings(SwaraXTIR3109BoardTests)
 add_test(NAME SwaraXTIR3109BoardTests COMMAND SwaraXTIR3109BoardTests)
 
+add_executable(SwaraXTCutoffAuthorityTests Filter/CutoffAuthorityTests.cpp)
+target_include_directories(SwaraXTCutoffAuthorityTests PRIVATE "${CMAKE_SOURCE_DIR}/Source")
+swaraxt_enable_warnings(SwaraXTCutoffAuthorityTests)
+swaraxt_enable_warnings_as_errors(SwaraXTCutoffAuthorityTests)
+add_test(NAME SwaraXTCutoffAuthorityTests COMMAND SwaraXTCutoffAuthorityTests)
+
 foreach(solver_target IN ITEMS SwaraXTIR3109SolverTests SwaraXTIR3109SolverBench)
     add_executable(${solver_target} Filter/ProductionSolverTestsMain.cpp)
     target_include_directories(${solver_target} PRIVATE "${CMAKE_SOURCE_DIR}/Source")
