@@ -137,6 +137,10 @@ def compare_source_133(source, checkout_sha, base_sha, git_tree, original_base,
             'Apple RealFromChars tuning parser exception missing')
     require('std::from_chars(first, last, value, std::chars_format::general)' not in tuning,
             'Public floating std::from_chars must not replace the Apple parser')
+    require('splitSignedPeriod(' in (source / 'Source/Tuning/TuningTable.h').read_text(),
+            '1.3.3 overflow-safe splitSignedPeriod missing')
+    require('splitSignedPeriod(degree, period, periodIndex, inside)' in tuning,
+            'TuningTable must use overflow-safe period indexing')
     require(all(marker in cutoff for marker in _CUTOFF_MARKERS),
             'Apple RealFromChars cutoff parser exception missing')
     require((source / 'Source/Tuning/RealFromChars.h').is_file(),

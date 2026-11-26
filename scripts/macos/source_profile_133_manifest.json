@@ -38,7 +38,7 @@
     "Source/Engine/SampleRate/HostResampler.h": "27433508db6d45b7bb93a12e0aedd7f6bad50d2c",
     "Source/Engine/SampleRate/InternalSampleQueue.h": "5558d1b56ffb2e0c584f43d34656b9486b1d79db",
     "Source/Engine/SampleRate/PolyphaseFirResampler.h": "d3eddf0997c982ca9afdf2b7240367719980c33a",
-    "Source/Engine/SequenceState.h": "6250e8df610f46be4936b9acc9eed4e94e77af2f",
+    "Source/Engine/SequenceState.h": "724ea099caf8a5d54ab9081c97ce1b001b41258b",
     "Source/Engine/SequencerMidiRoute.h": "72d4e8a5645244446022798ec060fcafb56cfab7",
     "Source/Engine/ShruthiPort/adapted/UPSTREAM_COMMIT": "3e5b7f1b4b54f6312cf26ffc2c72becdd71b9455",
     "Source/Engine/ShruthiPort/adapted/avrlib/random.cc": "e81518a89baf333f1eaeed442c4724e7a07743c1",
@@ -125,10 +125,10 @@
     "Source/Tools/SkinEditor/SkinEditorWindow.cpp": "116d1ea3e5cb3a2e92cdd5774a9fd09b2d772b4e",
     "Source/Tools/SkinEditor/SkinEditorWindow.h": "b7240e101fbee97bdf9e5dbed83ca44890349815",
     "Source/Tools/TuningConverter/TuningConverterMain.cpp": "443390cdcac76acb692fdbcd33e3a6f8e45aafcc",
-    "Source/Tuning/PublishedTuning.h": "3007f661a480264fe7e0930caf616d500e128552",
+    "Source/Tuning/PublishedTuning.h": "b2d724e278731c724d928b2daece02c4505f68e2",
     "Source/Tuning/ScalePitch.h": "ab83fd4425530211f5fc20b7189f13033b729869",
-    "Source/Tuning/TuningTable.cpp": "ecd09d1e8b2d899a8ae98044ebd7385d584fba44",
-    "Source/Tuning/TuningTable.h": "ff2cb4fcc86c89b1c5a449ec415ab809df2bf24e",
+    "Source/Tuning/TuningTable.cpp": "307df4ddeedc8432abd9e0710fdf4a44c36cced6",
+    "Source/Tuning/TuningTable.h": "a68a3e9a95da679e25957ddc2f65f5e007028993",
     "Source/Tuning/builtin/10-edo.scl": "35f8fb5de54b871b4fafc7bb4e7a9324b9c6c67c",
     "Source/Tuning/builtin/11-edo.scl": "a887234f21f50cb85474dd19867f9d213dabcf57",
     "Source/Tuning/builtin/12-edo.scl": "c75931cee0482e740b06b9e6b74ca31c8dfb7a70",
@@ -192,7 +192,7 @@
     "Source/Ui/SwaraXtUiPalette.h": "fc2433d10b2240d25bcf23e3d3dd855933ddf34f"
   },
   "apple_source_exceptions": {
-    "Source/Tuning/TuningTable.cpp": "e8b01ca76e2092dac958519975fb0394861f9840",
+    "Source/Tuning/TuningTable.cpp": "8199b9c239d17d60cbdb1cef03a32b18ea5f4012",
     "Source/Tuning/RealFromChars.h": "e28429ae271e7320e97caed41e7d65eac4c5916b",
     "Source/Plugin/SwaraXtParameterLayout.cpp": "c69b876c12a28bafaac949b1c2b9da83485658c5",
     "Source/Engine/SampleRate/HostResampler.cpp": "3eaf0209993b30513e994a68d70ee9b069629649",
@@ -213,7 +213,8 @@
     "Tests/SonicQuality/SonicQualityTestsMain.cpp": "948da8bae0c80a6c7ade94253ceea3798c1f92bc",
     "Tests/avrlib_hd/FilterParityTestsMain.cpp": null,
     "Tests/avrlib_hd/FilterUnitTestsMain.cpp": null,
-    "Tests/Filter/CutoffContractTestsMain.cpp": "b5dca1529b3d7c2c79a0f675fd0386fa411b6c18"
+    "Tests/Filter/CutoffContractTestsMain.cpp": "b5dca1529b3d7c2c79a0f675fd0386fa411b6c18",
+    "Tests/Tuning/TuningTableTestsMain.cpp": "5c9c4fc3f33b6748d1f85ef5922a980c9dd77951"
   },
   "protected_mac_tests": {
     "Tests/Filter/DualSvfSection2TestsMain.cpp": "59a37d98f4cf1f41e1e27008bf5f5c966a61fce2",

@@ -7,6 +7,7 @@
 #include <cmath>
 #include <cstdint>
 #include <cstdio>
+#include <limits>
 #include <string>
 
 namespace {
@@ -186,6 +187,23 @@ int main()
         expect(std::abs(localeScale.hzForMidi(69) - 440.0) < 1.0e-6, "locale change keeps A4");
         std::setlocale(LC_NUMERIC, savedLocale.c_str());
     }
+
+    int periodIndex = 0;
+    int inside = 0;
+    swaraxt::tuning::splitSignedPeriod(0, 12, periodIndex, inside);
+    expect(periodIndex == 0 && inside == 0, "degree 0 stays in period 0");
+    swaraxt::tuning::splitSignedPeriod(-1, 12, periodIndex, inside);
+    expect(periodIndex == -1 && inside == 11, "degree -1 wraps into the previous period");
+    swaraxt::tuning::splitSignedPeriod(-12, 12, periodIndex, inside);
+    expect(periodIndex == -1 && inside == 0, "degree -12 is exactly one period below tonic");
+    swaraxt::tuning::splitSignedPeriod(std::numeric_limits<int>::min(), 12, periodIndex, inside);
+    expect(inside >= 0 && inside < 12, "INT_MIN degree remains inside the period");
+    expect(std::isfinite(twelve.hzForDegree(-25)) && twelve.hzForDegree(-25) > 0.0,
+           "negative degree frequency is finite and positive");
+    expect(twelve.hzForDegree(0) > twelve.hzForDegree(-12), "one negative octave is below tonic");
+    expect(swaraxt::tuning::TuningSnapshot::equalHzFromCvSemitones(
+               std::numeric_limits<double>::infinity(), 69.0, 440.0) == 0.0,
+           "non-finite CV pitch is rejected");
 
     if (failures == 0)
     {
