@@ -140,8 +140,9 @@ Staged commits were scanned for credential filenames (`.p8`, `.p12`, `.pfx`, Aut
 ## PR
 
 Branch: `port/swaraxt-133-macos-surgical`  
-HEAD: `5722f902ab8d09c3cb9a43a32014dd2420bd36c0`  
-PR URL: opened against `Almeriya/SWARAPRIVATE` after this report commit; keep unmerged while gates remain blocked.
+Port commits through CI identity: `5722f902ab8d09c3cb9a43a32014dd2420bd36c0`  
+Report commit: `05ff3c3`  
+PR: https://github.com/Almeriya/SWARAPRIVATE/pull/1 (keep unmerged while gates remain blocked)
 
 ## Untested / remaining blockers
 
