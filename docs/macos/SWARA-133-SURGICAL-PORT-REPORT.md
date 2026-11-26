@@ -97,7 +97,7 @@ Configure: isolated `build-intel-133`, Ninja, Release, `x86_64`, Standalone OFF,
 | GrooveClock / TuningTable / CutoffAuthority / IR3109 / DelayWrap / Looper | PASS as above |
 | AU / VST3 x86_64 Release | PASS compile; x86_64-only; ad-hoc sealed |
 | Full CTest | NOT_RUN |
-| auval | COLLISION: loaded system 1.3.1, not this candidate |
+| auval | Two `aumu SwXT MnTr` registrations. First pass loaded system 1.3.1. After registrar restart: **1.3.3 (`0x10303`) VALIDATION SUCCEEDED** |
 | pluginval / Steinberg validator | NOT_RUN |
 | REAPER AU/VST3 | NOT_RUN (manual owner step required) |
 
@@ -167,6 +167,6 @@ Source integration Stages A–F and CI identity Stage H are on the branch with f
 
 1. First compile failed: nested `third_party/shruthi-1/avrlib` was uninitialized (`avrlib/base.h` missing). Local copy of pinned SHA `af7266e5b48ae20c0f83d4352c75c1068545cffc` unblocked includes. Not committed.
 2. `ninja -j2 SwaraXT_AU SwaraXT_VST3` Release x86_64 then **succeeded**. Bundles are x86_64-only, version 1.3.3 in Info.plist, ad-hoc sealed.
-3. `auval -v aumu SwXT MnTr` **succeeded as a validator run** but reported `Component Version: 1.3.1 (0x10301)`. A system-installed `/Library/Audio/Plug-Ins/Components/Swara XT.component` still owns that four-character identity. The 1.3.3 candidate was **not** the unit auval loaded. The system 1.3.1 was not moved or overwritten.
+3. `auval -a` lists two `aumu SwXT MnTr` entries: system `/Library/Audio/Plug-Ins/Components/Swara XT.component` (left in place) and the user-folder `1.3.3-dev-intel` copy. The first `auval -v` loaded **1.3.1 (`0x10301`)**. After `AudioComponentRegistrar` was restarted, a later `auval -v aumu SwXT MnTr` reported **Component Version: 1.3.3 (`0x10303`)** and **AU VALIDATION SUCCEEDED**. Binding is not guaranteed while both copies share the same four-character identity. The system 1.3.1 was not moved or overwritten.
 4. REAPER 7.86 is installed. Owner must rescan and instantiate **VST3** `Swara XT 1.3.3-dev-intel` from the user VST3 folder. AU instantiation in REAPER may still bind the system 1.3.1. No human listening check is claimed.
 5. Hosted Intel/ARM matrix was not dispatched from this session.
