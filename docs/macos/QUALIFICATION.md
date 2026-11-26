@@ -1,10 +1,33 @@
 # SWARA XT macOS engineering and qualification
 
-## Active 1.3.1 Universal AU/VST3 candidate
+## Active 1.3.3 Universal AU/VST3 engineering candidate
 
-The active macOS candidate uses product version 1.3.1 on the previously merged
+The active macOS candidate uses product version 1.3.3, surgically integrated
+from the official SWARAXT `v1.3.3` product source
+(`6ea598e47fb0347d23ffa538a64b02318187a7ed`) onto the previously qualified
+1.3.1 Mac tree (`64fa3f6640706db5ae7181bd9e694828b0284e3b`). Apple parser,
+host-arithmetic and AU/VST3 identity exceptions are retained. It targets
+x86_64 and arm64, macOS 11.0 minimum, hosted Xcode 16.4, and JUCE 9.0.1.
+The full workflow remains `macos-qualification.yml` with `mode=full`.
+Development/CI bundles are ad-hoc sealed, **not Developer ID signed or
+notarized**. This is not a public macOS release.
+
+Local Intel compilation on this workstation currently uses Xcode 15.2 /
+Apple Clang 15.0.0 / SDK 14.2. That difference is recorded; hosted
+qualification still requires the reviewed Xcode 16.4 identity and must not
+be relaxed to match the local toolchain.
+
+The 1.3.3 source profile checks source identity and version independently of
+any macOS audio-reference authority. `native_reference.py` remains
+fail-closed: **REFERENCE AUTHORITY REVIEW REQUIRED**. Historical 1.3.1
+Intel 134/136 and ARM64 131/136 results are retained as original evidence
+and are not 1.3.3 qualifications.
+
+## Historical 1.3.1 Universal AU/VST3 candidate (retained evidence)
+
+The historical macOS candidate used product version 1.3.1 on the previously merged
 SWARAXT 1.3.1 source overlay, with five SHA-pinned Apple exceptions and four
-reviewed retired-filter header deletions. It targets x86_64 and arm64,
+reviewed retired-filter header deletions. It targeted x86_64 and arm64,
 macOS 11.0 minimum, Xcode 16.4, and JUCE 9.0.1. The full workflow remains
 `macos-qualification.yml` with `mode=full`. Development/CI bundles are
 ad-hoc sealed, **not Developer ID signed or notarized**.

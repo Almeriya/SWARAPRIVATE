@@ -1,4 +1,4 @@
-# SWARA XT 1.3.1 macOS — Universal QA candidate
+# SWARA XT 1.3.3 macOS — Universal QA candidate
 
 This is **not a public release**. Packages are produced from the single
 immutable, provenance-checked CI universal candidate, ad-hoc signed for QA only,
@@ -7,14 +7,14 @@ remains pending independent approval.
 
 ## Assets
 
-- `SwaraXT-macOS-Universal-v1.3.1.zip`: AU and VST3 bundles, skin examples,
+- `SwaraXT-macOS-Universal-v1.3.3.zip`: AU and VST3 bundles, skin examples,
   decorations, GPL license, font/artwork licenses, copyright, source notice.
-- `SwaraXT-macOS-Universal-v1.3.1.pkg`: system-wide AU/VST3 installation.
-- `SwaraXT-macOS-Universal-v1.3.1-corresponding-source.tar.gz`: exact SW2
+- `SwaraXT-macOS-Universal-v1.3.3.pkg`: system-wide AU/VST3 installation.
+- `SwaraXT-macOS-Universal-v1.3.3-corresponding-source.tar.gz`: exact destination
   source SHA, pinned Shruthi/avrlib source and JUCE 9.0.1 source (verify contents).
 - `SHA256SUMS` and `package-qa-manifest.json`: SHA-256 package inventory.
 
-Manual ZIP bundle layout: `Swara XT 1.3.1 macOS/AU/Swara XT.component`,
+Manual ZIP bundle layout: `Swara XT 1.3.3 macOS/AU/Swara XT.component`,
 `VST3/Swara XT.vst3`, `Skin Examples/`, `Documentation/`.
 
 The PKG installs to `/Library/Audio/Plug-Ins/Components/Swara XT.component`
@@ -33,7 +33,7 @@ seals, writes `unsigned-universal/provenance.json` and its SHA-256 inventory.
 
 `scripts/macos/package_release_candidate.py` consumes **only that exact
 candidate**. Inputs are the source checkout, pinned JUCE checkout, candidate
-bundle directory, candidate full commit SHA, version 1.3.1, and a new output
+bundle directory, candidate full commit SHA, version 1.3.3, and a new output
 directory. It refuses mismatched provenance, missing bundles, altered files,
 incorrect identities or architecture slices, invalid signatures or dirty
 source trees. The ZIP/PKG are roundtrip inspected and checksummed. CI never

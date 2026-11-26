@@ -39,26 +39,25 @@ class SourceProfile131Tests(unittest.TestCase):
         self.assertEqual(result['native_audio_reference'], 'REVIEW_REQUIRED')
 
     def test_real_committed_git_trees(self):
-        """Positive admission using full git ls-tree output for exact committed refs."""
+        """Historical 1.3.1 admission against the frozen Mac baseline, not HEAD."""
         import subprocess
         from policy import git_tree
 
+        historical = '64fa3f6640706db5ae7181bd9e694828b0284e3b'
         root = MANIFEST.resolve().parents[2]
         def git(*args):
             return subprocess.check_output(
                 ['git', *args], cwd=root, text=True, timeout=60).strip()
 
         self.assertEqual(git('rev-parse', '--show-toplevel'), str(root))
-        self.assertEqual(git('status', '--porcelain', '--untracked-files=all'), '',
-                         'Real source admission requires a clean checkout')
-        head = git('rev-parse', 'HEAD')
-        self.assertNotEqual(head, SW2_BASE_SHA, 'Expected migrated commit')
-        subprocess.run(['git', 'merge-base', '--is-ancestor', SW2_BASE_SHA, head],
+        self.assertEqual(git('cat-file', '-t', historical), 'commit')
+        self.assertNotEqual(historical, SW2_BASE_SHA, 'Expected migrated commit')
+        subprocess.run(['git', 'merge-base', '--is-ancestor', SW2_BASE_SHA, historical],
                        cwd=root, check=True, timeout=60)
         baseline = {path: row.split()[-1]
                     for path, row in git_tree(root, SW2_BASE_SHA).items()}
         candidate = {path: row.split()[-1]
-                     for path, row in git_tree(root, head).items()}
+                    for path, row in git_tree(root, historical).items()}
         report = validate_tree(baseline, candidate, self.manifest)
         self.assertEqual(report['source_files'], 189)
         self.assertEqual(report['native_audio_reference'], 'REVIEW_REQUIRED')

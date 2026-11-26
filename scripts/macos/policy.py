@@ -166,7 +166,13 @@ def verify_dual_integration_selection(source):
 
 def compare_public(source, baseline, checkout_sha, base_sha):
     require(base_sha == BASE_SHA, 'Approved SW2 base required')
-    # Separate reviewed 1.3.1 source profile; retain original 1.3.0 admission below.
+    cmake = Path(source) / 'CMakeLists.txt'
+    cmake_text = cmake.read_text() if cmake.is_file() else ''
+    # Separate reviewed 1.3.3 surgical profile; retain 1.3.1 and 1.3.0 admission below.
+    if 'project(SwaraXT VERSION 1.3.3 LANGUAGES C CXX)' in cmake_text:
+        from source_profile_133 import compare_source_133
+        return compare_source_133(source, checkout_sha, base_sha, git_tree,
+                                  BASE_SHA, PRODUCTION_PARITY, HOST_ARITHMETIC)
     if (Path(source) / 'Source/Ui/SwaraXtPanelWidgets.cpp').exists():
         from source_profile_131 import compare_source_131
         return compare_source_131(source, checkout_sha, base_sha, git_tree,

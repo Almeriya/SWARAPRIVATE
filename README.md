@@ -55,7 +55,7 @@ pitch range apply; imports are validated before the active tuning changes.
   ring modulation, delay and feedback variants, looper and pitch processing.
 - **57 factory programs**, including 40 Shruthi patches, and user-preset save/load.
 - Five skins, three interface sizes, custom colours, artwork, decorations and
-  manufacturer marks. The macOS 1.3.1 QA candidate includes skin examples and decorations
+  manufacturer marks. The macOS 1.3.3 engineering candidate includes skin examples and decorations
   for direct loading in the synthesizer. The separate **Skin Editor** remains
   available in source but its application is not distributed.
 - VST3 and Standalone on Windows and Linux; macOS source builds also include AU.
@@ -87,8 +87,8 @@ Manual archives remain available from [GitHub Releases](https://github.com/montr
 
 ## Downloads
 
-The latest published release is [1.2.3](https://github.com/montronedsp/SWARAXT/releases/tag/v1.2.3).
-The SW2 macOS source targets **1.3.1 (release candidate, unqualified)**.
+The latest published Windows/Linux release is [1.3.3](https://github.com/montronedsp/SWARAXT/releases/tag/v1.3.3).
+The macOS source targets **1.3.3 (engineering candidate, unqualified)**.
 No macOS installer or archive is publicly published. Download links for previously
 published releases remain separate from this macOS qualification effort.
 
@@ -103,7 +103,7 @@ The current public Windows x64 package is available from
 
 ### macOS
 
-SW2 is preparing an **unnotarized macOS 1.3.1 Universal AU/VST3 QA candidate**.
+This tree is preparing an **unnotarized macOS 1.3.3 Universal AU/VST3 engineering candidate**.
 See [BUILDING.md](BUILDING.md) and [macOS qualification](docs/macos/QUALIFICATION.md).
 The QA packages are not public releases and require independent native audio approval.
 
@@ -173,4 +173,4 @@ SWARA XT is an independent project and is not an official Mutable Instruments pr
 
 ---
 
-**SWARA XT 1.3.1 macOS release candidate — MontroneDSP (unqualified)**
+**SWARA XT 1.3.3 macOS engineering candidate — MontroneDSP (unqualified)**

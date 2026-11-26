@@ -23,11 +23,11 @@ import zipfile
 
 from policy import check_bundle, digest, files_manifest, SEAL
 
-VERSION = '1.3.1'
+VERSION = '1.3.3'
 JUCE_SHA = 'e18f7f506c0b96f2c738a0bcd7fe6467a5005ad8'
 FORMATS = ('Swara XT.component', 'Swara XT.vst3')
 PKG_ID = 'com.montronedsp.swaraxt.macosinstaller'
-PACKAGE_ROOT = 'Swara XT 1.3.1 macOS'
+PACKAGE_ROOT = 'Swara XT 1.3.3 macOS'
 
 
 def require(ok, message):
