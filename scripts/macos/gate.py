@@ -49,7 +49,7 @@ def evaluate(root, args):
         require(key in expected and key not in found, 'Extra or duplicated native report')
         require(data['source_sha'] == args.source_sha and data['base_source_sha'] == args.base_source_sha, 'Report source mismatch')
         require(data['run_id'] == os.environ['GITHUB_RUN_ID'] and data['run_attempt'] == os.environ['GITHUB_RUN_ATTEMPT'], 'Report run/attempt mismatch')
-        require(data['repository'] == 'RIG-AUDIO/SW2' and data['execution_mode'] == args.mode, 'Report repository/mode mismatch')
+        require(data['repository'] == 'Almeriya/SWARAPRIVATE' and data['execution_mode'] == args.mode, 'Report repository/mode mismatch')
         require(data['juce_sha'] == JUCE_SHA and data['standalone'] is False, 'Dependency/format mismatch')
         require(data['source_parity']['production_parity'] == PRODUCTION_PARITY and
                 data['source_parity']['base_source_sha'] == args.base_source_sha and

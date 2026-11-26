@@ -13,7 +13,7 @@ import zipfile
 
 from processes import run_process, ProcessResult
 
-REPOSITORY = 'RIG-AUDIO/SW2'
+REPOSITORY = 'Almeriya/SWARAPRIVATE'
 JUCE_SHA = 'e18f7f506c0b96f2c738a0bcd7fe6467a5005ad8'
 SDK_SHA = '9fad9770f2ae8542ab1a548a68c1ad1ac690abe0'
 SEAL = 'CI_AD_HOC_SEALED_NOT_DEVELOPER_ID_SIGNED'
@@ -65,8 +65,8 @@ def owned_path(path, root):
 
 def hosted_root(root, source=None):
     require(os.environ.get('GITHUB_ACTIONS') == 'true', 'GitHub Actions is required')
-    require(os.environ.get('GITHUB_REPOSITORY') == REPOSITORY, 'Public SW2 only')
-    require(os.environ.get('SWARAXT_REPOSITORY_PRIVATE') == 'false', 'Public repository event required')
+    require(os.environ.get('GITHUB_REPOSITORY') == REPOSITORY, 'Authorized Almeriya/SWARAPRIVATE only')
+    require(os.environ.get('SWARAXT_REPOSITORY_PRIVATE') == 'true', 'Private repository event required')
     require(os.environ.get('RUNNER_ENVIRONMENT') == 'github-hosted', 'Ephemeral GitHub-hosted runner required')
     root = owned_path(root, os.environ['RUNNER_TEMP'])
     if source is not None:

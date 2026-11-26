@@ -26,14 +26,14 @@ class PublicPolicyTests(unittest.TestCase):
     def test_hosted_public_runner_boundary(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            env = {'GITHUB_ACTIONS': 'true', 'GITHUB_REPOSITORY': 'RIG-AUDIO/SW2',
-                   'SWARAXT_REPOSITORY_PRIVATE': 'false', 'RUNNER_ENVIRONMENT': 'github-hosted',
+            env = {'GITHUB_ACTIONS': 'true', 'GITHUB_REPOSITORY': 'Almeriya/SWARAPRIVATE',
+                   'SWARAXT_REPOSITORY_PRIVATE': 'true', 'RUNNER_ENVIRONMENT': 'github-hosted',
                    'RUNNER_TEMP': str(root)}
             with patch.dict(os.environ, env, clear=True):
                 self.assertEqual(hosted_root(root / 'owned'), (root / 'owned').resolve())
                 with self.assertRaises(RuntimeError): hosted_root(root)
                 for key, bad in [('GITHUB_REPOSITORY', 'public/repo'),
-                                 ('SWARAXT_REPOSITORY_PRIVATE', 'true'),
+                                 ('SWARAXT_REPOSITORY_PRIVATE', 'false'),
                                  ('RUNNER_ENVIRONMENT', 'self-hosted'), ('GITHUB_ACTIONS', 'false')]:
                     with patch.dict(os.environ, {key: bad}):
                         with self.assertRaises(RuntimeError): hosted_root(root / 'owned')

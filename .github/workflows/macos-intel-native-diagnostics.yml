@@ -35,7 +35,7 @@ concurrency:
 jobs:
   diagnostic:
     name: diagnostic (${{ inputs.architecture || 'x86_64' }}${{ matrix.shard != 'none' && format(', TSan shard {0}', matrix.shard) || '' }})
-    if: github.repository == 'RIG-AUDIO/SW2'
+    if: github.repository == 'Almeriya/SWARAPRIVATE'
     strategy:
       fail-fast: false
       matrix:
@@ -133,7 +133,7 @@ jobs:
   intel-tsan-gate:
     name: Intel TSan aggregate gate
     needs: diagnostic
-    if: always() && github.repository == 'RIG-AUDIO/SW2' && inputs.profile == 'tsan' && inputs.architecture != 'arm64' && !inputs.retry-tsan-shard-a
+    if: always() && github.repository == 'Almeriya/SWARAPRIVATE' && inputs.profile == 'tsan' && inputs.architecture != 'arm64' && !inputs.retry-tsan-shard-a
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:

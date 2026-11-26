@@ -28,7 +28,7 @@ concurrency:
 jobs:
   native-build-probe:
     name: UNQUALIFIED build probe (${{ matrix.architecture }}, ${{ matrix.profile }})
-    if: github.repository == 'RIG-AUDIO/SW2'
+    if: github.repository == 'Almeriya/SWARAPRIVATE'
     strategy:
       # Exact missing timeout profiles. Only one expensive Mac runner at a time.
       # Cancel pending profiles on a failure; diagnose before another expensive run.
@@ -60,8 +60,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test "$GITHUB_REPOSITORY" = RIG-AUDIO/SW2
-          test "$SWARAXT_REPOSITORY_PRIVATE" = false
+          test "$GITHUB_REPOSITORY" = Almeriya/SWARAPRIVATE
+          test "$SWARAXT_REPOSITORY_PRIVATE" = true
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
           python3 -m pip install cmake==3.31.6 ninja==1.11.1.4
       - name: Measure native compilation and full CTest without reference approval

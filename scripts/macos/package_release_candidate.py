@@ -124,7 +124,7 @@ def copy_documentation(repo, destination, sha):
     source_text = (repo / 'packaging/SOURCE.txt').read_text()
     (destination / 'SOURCE.txt').write_text(
         source_text + '\nQA candidate source revision: ' + sha +
-        '\nCanonical source: https://github.com/RIG-AUDIO/SW2/tree/' + sha +
+        '\nCanonical source: https://github.com/Almeriya/SWARAPRIVATE/tree/' + sha +
         '\nMac JUCE 9.0.1 pinned source: https://github.com/juce-framework/JUCE/tree/' +
         JUCE_SHA + '\nSee the separate complete corresponding-source QA archive.\n')
     require((destination / 'LICENSE.txt').stat().st_size > 5000, 'GPL license missing')

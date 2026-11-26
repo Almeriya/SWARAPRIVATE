@@ -536,8 +536,9 @@ def main():
     args = parser.parse_args()
     require(revision(args.source_sha) == os.environ['GITHUB_SHA'], 'Source revision input mismatch')
     revision(args.base_source_sha)
-    require(os.environ.get('GITHUB_REPOSITORY') == 'RIG-AUDIO/SW2' and
-            os.environ.get('SWARAXT_REPOSITORY_PRIVATE') == 'false', 'Public SW2 execution only')
+    require(os.environ.get('GITHUB_REPOSITORY') == 'Almeriya/SWARAPRIVATE' and
+            os.environ.get('SWARAXT_REPOSITORY_PRIVATE') == 'true',
+            'Authorized private Almeriya/SWARAPRIVATE execution only')
     if args.task == 'gate':
         from gate import evaluate
         root = hosted_root(args.root, SOURCE)

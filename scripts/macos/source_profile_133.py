@@ -23,6 +23,12 @@ _ALLOWED_META = {
     'cmake/Juce901RestoreCompletion.cmake',
     'cmake/Juce901RestoreCompletion.patch',
     'cmake/Juce901PngError.cmake',
+    'scripts/macos/ci.py',
+    'scripts/macos/gate.py',
+    'scripts/macos/test_policy.py',
+    '.github/workflows/macos-build-recovery.yml',
+    '.github/workflows/macos-intel-native-diagnostics.yml',
+    '.github/workflows/macos-development-build.yml',
 }
 _BUILD_RECOVERY_META = {
     'scripts/macos/build_recovery_probe.py',
@@ -177,6 +183,15 @@ def compare_source_133(source, checkout_sha, base_sha, git_tree, original_base,
             'Windows restore-completion overlay wiring missing')
     require('if(APPLE)' not in deps and 'SWARAXT_JUCE_RESTORE_COMPLETION' not in deps,
             'Apple must not enable unverified SWARAXT_JUCE_RESTORE_COMPLETION')
+    workflow = (source / '.github/workflows/macos-qualification.yml').read_text()
+    policy_text = (source / 'scripts/macos/policy.py').read_text()
+    require("github.repository == 'Almeriya/SWARAPRIVATE'" in workflow
+            and 'RIG-AUDIO/SW2' not in workflow
+            and "test \"$SWARAXT_REPOSITORY_PRIVATE\" = true" in workflow,
+            'macOS qualification workflow still uses retired repository identity')
+    require("REPOSITORY = 'Almeriya/SWARAPRIVATE'" in policy_text
+            and "SWARAXT_REPOSITORY_PRIVATE') == 'true'" in policy_text,
+            'macOS CI policy still requires retired public SW2 identity')
     require(new.get('third_party/shruthi-1') == old.get('third_party/shruthi-1'),
             'Shruthi submodule pin changed')
     return {'base_source_sha': original_base, 'checkout_sha': checkout_sha,

@@ -5,8 +5,7 @@ run-name: SWARA XT 1.3.3 macOS ${{ github.sha }}
 'on':
   push:
     branches:
-    - ci/macos-130-qualification
-    - release/macos-131-qualification
+    - port/swaraxt-133-macos-surgical
   workflow_dispatch:
     inputs:
       mode:
@@ -22,11 +21,11 @@ run-name: SWARA XT 1.3.3 macOS ${{ github.sha }}
 permissions:
   contents: read
 concurrency:
-  group: sw2-macos-${{ github.ref }}-${{ github.sha }}
+  group: swaraprivate-macos-${{ github.ref }}-${{ github.sha }}
   cancel-in-progress: false
 jobs:
   preflight-arm64:
-    if: github.repository == 'RIG-AUDIO/SW2'
+    if: github.repository == 'Almeriya/SWARAPRIVATE'
     runs-on: macos-15
     timeout-minutes: 20
     env:
@@ -50,9 +49,9 @@ jobs:
       shell: bash
       run: 'set -euo pipefail
 
-        test "$GITHUB_REPOSITORY" = RIG-AUDIO/SW2
+        test "$GITHUB_REPOSITORY" = Almeriya/SWARAPRIVATE
 
-        test "$SWARAXT_REPOSITORY_PRIVATE" = false
+        test "$SWARAXT_REPOSITORY_PRIVATE" = true
 
         test "$REVIEWED_SHA" = "$GITHUB_SHA"
 
@@ -88,7 +87,7 @@ jobs:
         if-no-files-found: error
         retention-days: 7
   preflight-intel:
-    if: github.repository == 'RIG-AUDIO/SW2'
+    if: github.repository == 'Almeriya/SWARAPRIVATE'
     runs-on: macos-15-intel
     timeout-minutes: 20
     env:
@@ -112,9 +111,9 @@ jobs:
       shell: bash
       run: 'set -euo pipefail
 
-        test "$GITHUB_REPOSITORY" = RIG-AUDIO/SW2
+        test "$GITHUB_REPOSITORY" = Almeriya/SWARAPRIVATE
 
-        test "$SWARAXT_REPOSITORY_PRIVATE" = false
+        test "$SWARAXT_REPOSITORY_PRIVATE" = true
 
         test "$REVIEWED_SHA" = "$GITHUB_SHA"
 
@@ -150,7 +149,7 @@ jobs:
         if-no-files-found: error
         retention-days: 7
   universal:
-    if: (inputs.mode || 'full') != 'preflight'
+    if: github.repository == 'Almeriya/SWARAPRIVATE' && (inputs.mode || 'full') != 'preflight'
     needs:
     - preflight-intel
     runs-on: macos-15-intel
@@ -175,9 +174,9 @@ jobs:
       shell: bash
       run: 'set -euo pipefail
 
-        test "$GITHUB_REPOSITORY" = RIG-AUDIO/SW2
+        test "$GITHUB_REPOSITORY" = Almeriya/SWARAPRIVATE
 
-        test "$SWARAXT_REPOSITORY_PRIVATE" = false
+        test "$SWARAXT_REPOSITORY_PRIVATE" = true
 
         test "$REVIEWED_SHA" = "$GITHUB_SHA"
 
@@ -246,7 +245,7 @@ jobs:
         if-no-files-found: error
         retention-days: 7
   smoke:
-    if: (inputs.mode || 'full') == 'smoke' || (inputs.mode || 'full') == 'full'
+    if: github.repository == 'Almeriya/SWARAPRIVATE' && ((inputs.mode || 'full') == 'smoke' || (inputs.mode || 'full') == 'full')
     needs:
     - universal
     strategy:
@@ -281,9 +280,9 @@ jobs:
       shell: bash
       run: 'set -euo pipefail
 
-        test "$GITHUB_REPOSITORY" = RIG-AUDIO/SW2
+        test "$GITHUB_REPOSITORY" = Almeriya/SWARAPRIVATE
 
-        test "$SWARAXT_REPOSITORY_PRIVATE" = false
+        test "$SWARAXT_REPOSITORY_PRIVATE" = true
 
         test "$REVIEWED_SHA" = "$GITHUB_SHA"
 
@@ -332,7 +331,7 @@ jobs:
         if-no-files-found: error
         retention-days: 7
   native:
-    if: (inputs.mode || 'full') == 'full'
+    if: github.repository == 'Almeriya/SWARAPRIVATE' && (inputs.mode || 'full') == 'full'
     needs:
     - preflight-arm64
     - preflight-intel
@@ -372,9 +371,9 @@ jobs:
       shell: bash
       run: 'set -euo pipefail
 
-        test "$GITHUB_REPOSITORY" = RIG-AUDIO/SW2
+        test "$GITHUB_REPOSITORY" = Almeriya/SWARAPRIVATE
 
-        test "$SWARAXT_REPOSITORY_PRIVATE" = false
+        test "$SWARAXT_REPOSITORY_PRIVATE" = true
 
         test "$REVIEWED_SHA" = "$GITHUB_SHA"
 
@@ -423,7 +422,7 @@ jobs:
         if-no-files-found: error
         retention-days: 7
   qualification-gate:
-    if: always()
+    if: always() && github.repository == 'Almeriya/SWARAPRIVATE'
     needs:
     - preflight-arm64
     - preflight-intel
@@ -449,9 +448,9 @@ jobs:
       shell: bash
       run: 'set -euo pipefail
 
-        test "$GITHUB_REPOSITORY" = RIG-AUDIO/SW2
+        test "$GITHUB_REPOSITORY" = Almeriya/SWARAPRIVATE
 
-        test "$SWARAXT_REPOSITORY_PRIVATE" = false
+        test "$SWARAXT_REPOSITORY_PRIVATE" = true
 
         test "$REVIEWED_SHA" = "$GITHUB_SHA"'
       env:

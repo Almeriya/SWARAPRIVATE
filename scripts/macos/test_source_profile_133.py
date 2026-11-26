@@ -26,7 +26,13 @@ class SourceProfile133Tests(unittest.TestCase):
                   'cmake/Dependencies.cmake',
                   'cmake/Juce901RestoreCompletion.cmake',
                   'cmake/Juce901RestoreCompletion.patch',
-                  'cmake/Juce901PngError.cmake'):
+                  'cmake/Juce901PngError.cmake',
+                  'scripts/macos/ci.py',
+                  'scripts/macos/gate.py',
+                  'scripts/macos/test_policy.py',
+                  '.github/workflows/macos-build-recovery.yml',
+                  '.github/workflows/macos-intel-native-diagnostics.yml',
+                  '.github/workflows/macos-development-build.yml'):
             cls.base.setdefault(p, 'baseline-sha')
             cls.current[p] = 'reviewed-sha'
         cls.base['third_party/shruthi-1'] = cls.current['third_party/shruthi-1'] = 'pinned'
