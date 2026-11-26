@@ -2,6 +2,8 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 name: macOS 1.3.1 native build recovery diagnostics
 # This is never a full release-qualification gate or audio-reference approval.
+# workflow_dispatch on this branch runs a single registered CTest target probe
+# (Stage A recovery). Push on the historical recovery branch keeps the matrix.
 on:
   push:
     branches: [engineering/macos-131-qualification-recovery]
@@ -12,26 +14,78 @@ on:
         description: Native Mac runner
         type: choice
         required: true
-        default: x86_64
+        default: arm64
         options: [x86_64, arm64]
       profile:
-        description: Instrumented build and entire registered CTest inventory
+        description: Native profile for the probe (targeted) or full inventory
         type: choice
         required: true
-        default: Release
+        default: Debug
         options: [Release, Debug, asan-ubsan, tsan]
 permissions:
   contents: read
 concurrency:
-  group: sw2-build-recovery-${{ github.ref }}-${{ github.sha }}
+  group: sw2-build-recovery-${{ github.ref }}-${{ github.event_name }}-${{ github.sha }}-${{ inputs.architecture || 'matrix' }}-${{ inputs.profile || 'matrix' }}
   cancel-in-progress: false
 jobs:
+  targeted-native-test:
+    name: targeted native test (${{ inputs.architecture }}, ${{ inputs.profile }})
+    if: github.repository == 'Almeriya/SWARAPRIVATE' && github.event_name == 'workflow_dispatch'
+    runs-on: ${{ inputs.architecture == 'arm64' && 'macos-15' || 'macos-15-intel' }}
+    timeout-minutes: 240
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_16.4.app/Contents/Developer
+      PYTHONDONTWRITEBYTECODE: '1'
+      SWARAXT_REPOSITORY_PRIVATE: ${{ github.event.repository.private }}
+      TARGET_ARCH: ${{ inputs.architecture }}
+      TARGET_PROFILE: ${{ inputs.profile }}
+      # Exact registered CTest name for the confirmed PresetRestore harness fix.
+      PROBE_TARGET: SwaraXTCurrentPresetRestoreHeadlessTests
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+          submodules: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.12'
+      - name: Verify public source and pinned build frontend
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REPOSITORY" = Almeriya/SWARAPRIVATE
+          test "$SWARAXT_REPOSITORY_PRIVATE" = false
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          python3 -m pip install cmake==3.31.6 ninja==1.11.1.4
+      - name: Compile and run one registered CTest target
+        shell: bash
+        env:
+          RUNNER_ENVIRONMENT: ${{ runner.environment }}
+        run: >-
+          python3 scripts/macos/native_test_probe.py
+          --root "$RUNNER_TEMP/swara-native-test-probe"
+          --arch "$TARGET_ARCH"
+          --profile "$TARGET_PROFILE"
+          --target "$PROBE_TARGET"
+          --source-sha "$GITHUB_SHA"
+      - name: Preserve probe evidence even on failure
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: mac-native-test-probe-${{ inputs.architecture }}-${{ inputs.profile }}-${{ env.PROBE_TARGET }}-${{ github.sha }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/swara-native-test-probe/*.log
+            ${{ runner.temp }}/swara-native-test-probe/*.json
+            ${{ runner.temp }}/swara-native-test-probe/*.xml
+            ${{ runner.temp }}/swara-native-test-probe/build/Testing/Temporary/LastTest.log*
+          if-no-files-found: warn
+          retention-days: 7
+
   native-build-probe:
     name: UNQUALIFIED build probe (${{ matrix.architecture }}, ${{ matrix.profile }})
-    if: github.repository == 'Almeriya/SWARAPRIVATE'
+    if: github.repository == 'Almeriya/SWARAPRIVATE' && github.event_name == 'push'
     strategy:
-      # Exact missing timeout profiles. Only one expensive Mac runner at a time.
-      # Cancel pending profiles on a failure; diagnose before another expensive run.
       fail-fast: true
       max-parallel: 1
       matrix:
