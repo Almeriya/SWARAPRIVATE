@@ -41,6 +41,7 @@ _ALLOWED_META = {
     'AGENTS.md',
     '.cursor/rules/macos-engineering.mdc',
     '.cursor/rules/ci-no-polling.mdc',
+    '.gitignore',
 }
 _BUILD_RECOVERY_META = {
     'scripts/macos/build_recovery_probe.py',

@@ -406,4 +406,8 @@ Audio authority remains **REVIEW_REQUIRED**. PR #1 stays unmerged. Merge readine
 - RestoreCompletion / HostRestoreFault → Apple JUCE restore-completion overlay still off (Windows CRLF overlay not applied to Apple)
 - Intel/sanitizer full-matrix compile timeouts → **INTERRUPTED** / **NOT_RUN**
 
-Focused dispatch after this amendment: recovery workflow ARM64 Debug matrix of the four targets — results **PENDING** (no-wait policy).
+Focused dispatch after this amendment: recovery workflow ARM64 Debug matrix of the four targets.
+
+Run https://github.com/Almeriya/SWARAPRIVATE/actions/runs/45934895475 (`865fbc6`) — **FAIL** before compile: `unreviewed repository difference: .gitignore` (policy commit). Tests **NOT_RUN**.
+
+`.gitignore` added to `_ALLOWED_META`. Re-dispatch — **PENDING**.
