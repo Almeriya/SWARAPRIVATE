@@ -92,7 +92,12 @@ struct Trace {
     void clearFifo() { fifo.fill(0); cursor = 0; pending = 0; }
     static void tap(void* context, const SwaraXtEngine::DebugBlockCapture& b) {
         auto& t = *static_cast<Trace*>(context); auto& e = *t.engine;
-        if (t.armPanicResync) { t.clearFifo(); t.armPanicResync = false; }
+        if (t.armPanicResync) {
+            t.clearFifo();
+            // Panic drops the Dual tail; do not enforce pre-panic insertion timing.
+            t.lastInput = t.lastOutput = t.exactZero = -1;
+            t.armPanicResync = false;
+        }
         t.lastPostFx = b.filterOutput[b.samples - 1];
         for (int i = 0; i < b.samples; ++i) {
             const auto n = static_cast<int64_t>(b.nativeBlockIndex) * 40 + i;

@@ -397,8 +397,8 @@ Audio authority remains **REVIEW_REQUIRED**. PR #1 stays unmerged. Merge readine
 - **Assertion:** `old retained index remaps by saved name`
 - **Classification:** **TEST BUG**
 - **Root cause:** After `setStateInformation`, `setCurrentProgram` is intentionally a no-op (`hostSessionStateRestored_`). Later iterations never re-selected the intended factory program.
-- **Correction:** Use `loadFactoryPreset(51+i)` for explicit selection before remap capture. Product remapping loop unchanged.
-- **CI:** focused ARM64 Debug — **PENDING**
+- **Correction:** Use public `loadPresetEntry` (factory entry) for explicit selection before remap capture — `loadFactoryPreset` is private. Product remapping loop unchanged.
+- **CI:** focused ARM64 Debug — **PENDING** (follow-up commit after private-API catch)
 
 ### Still blocked (unchanged)
 
