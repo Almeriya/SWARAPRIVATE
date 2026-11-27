@@ -141,7 +141,7 @@ def git_tree(source, ref):
             for entry in output.split(b'\0') if entry}
 
 
-PARSER_HASHES = {'Source/Tuning/RealFromChars.h': 'fb47ca3421c701681d53025fe11e883ae9e4fcf376d904a7c34d2a9a772b7d96', 'third_party/fast_float/UPSTREAM.json': '43d3685de2707cb0830ca59b561dd33d214e0eefe31112b94bb7558a67bfc391', 'REUSE.toml': '53860a3e09d87db5dc318ef5e2ca51a93c035248aa4f595caf4fbef9674f5c14', 'LICENSES/MIT.txt': 'e562f3f974ced7e69dd1db77b820b36bcf8f30377f1aa105723fba449c53c4e6'}
+PARSER_HASHES = {'Source/Tuning/RealFromChars.h': 'fb47ca3421c701681d53025fe11e883ae9e4fcf376d904a7c34d2a9a772b7d96', 'third_party/fast_float/UPSTREAM.json': '43d3685de2707cb0830ca59b561dd33d214e0eefe31112b94bb7558a67bfc391', 'REUSE.toml': 'f6a0947d638df37fb99705fa255efcbfacfd8d44e5a600c8d1629f5df956c849', 'LICENSES/MIT.txt': 'e562f3f974ced7e69dd1db77b820b36bcf8f30377f1aa105723fba449c53c4e6'}
 
 APPLE_GUARD_TEST = 'Tests/avrlib_hd/UpperRegisterOscillatorTestsMain.cpp'
 APPLE_GUARD_TEST_SHA256 = '1fcf09b4c4413d3b08470dd370e5edbce83d9b648822a1c52b5344c7b48f91f1'

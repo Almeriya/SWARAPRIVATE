@@ -340,7 +340,7 @@ target_compile_definitions(SwaraXTDcDormancyTests PRIVATE SWARAXT_ENABLE_IDLE_CP
 swaraxt_add_plugin_console_test(SwaraXTMultiInstanceTests LiveEngine/MultiInstanceTestsMain.cpp)
 
 function(swaraxt_add_audio_regression_target target mode)
-    if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND SWARAXT_SHARE_TEST_PRODUCTION)
+    if((CMAKE_SYSTEM_NAME STREQUAL "Linux" OR APPLE) AND SWARAXT_SHARE_TEST_PRODUCTION)
         set(SWARAXT_TEST_MODE_DEFINE SWARAXT_AUDIO_TEST_MODE)
         set(SWARAXT_TEST_MODE_VALUE ${mode})
         set(SWARAXT_TEST_MODE_SOURCE "${CMAKE_CURRENT_SOURCE_DIR}/AudioRegression/AudioRegressionTestsMain.cpp")
@@ -358,7 +358,7 @@ swaraxt_add_audio_regression_target(SwaraXTInitializationTests 2)
 swaraxt_add_audio_regression_target(SwaraXTQueueIntegrityTests 3)
 
 function(swaraxt_add_shruthi_timing_target target mode)
-    if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND SWARAXT_SHARE_TEST_PRODUCTION)
+    if((CMAKE_SYSTEM_NAME STREQUAL "Linux" OR APPLE) AND SWARAXT_SHARE_TEST_PRODUCTION)
         set(SWARAXT_TEST_MODE_DEFINE SWARAXT_SHRUTHI_TIMING_TEST_MODE)
         set(SWARAXT_TEST_MODE_VALUE ${mode})
         set(SWARAXT_TEST_MODE_SOURCE "${CMAKE_CURRENT_SOURCE_DIR}/ShruthiTiming/ShruthiTimingTestsMain.cpp")

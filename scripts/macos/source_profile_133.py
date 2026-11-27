@@ -42,6 +42,8 @@ _ALLOWED_META = {
     '.cursor/rules/macos-engineering.mdc',
     '.cursor/rules/ci-no-polling.mdc',
     '.gitignore',
+    'REUSE.toml',
+    'cmake/Qualification.cmake',
 }
 _BUILD_RECOVERY_META = {
     'scripts/macos/build_recovery_probe.py',
@@ -205,14 +207,28 @@ def compare_source_133(source, checkout_sha, base_sha, git_tree, original_base,
             and 'static_cast<uint16_t>(phase_noise)' in
             (source / 'Source/Engine/ShruthiPort/include_first/avrlib_hd/vowel.h').read_text(),
             '1.3.3 Shruthi Part / AVR vowel phase-wrap contracts missing')
-    require('elseif(WIN32)' in deps
+    require('elseif(WIN32 OR APPLE)' in deps
             and 'include("${CMAKE_CURRENT_LIST_DIR}/Juce901RestoreCompletion.cmake")' in deps,
-            'Windows restore-completion overlay wiring missing')
-    # Comment text may mention the macro; Apple must not get a second include path.
+            'Apple/Windows restore-completion overlay wiring missing')
     require(deps.count('Juce901RestoreCompletion.cmake') == 1
-            and 'if(APPLE)' not in deps
-            and 'elseif(APPLE)' not in deps,
-            'Apple must not enable unverified SWARAXT_JUCE_RESTORE_COMPLETION')
+            and 'if(WIN32)' in deps
+            and 'Juce901PngError.cmake' in deps,
+            'MSVC PNG overlay must remain Windows-only')
+    agents = (source / 'AGENTS.md').read_text()
+    require('SPDX-License-Identifier: GPL-3.0-or-later' in agents
+            and 'AGENTS MUST NOT POLL OR WAIT FOR GITHUB ACTIONS' in agents,
+            'Tracked AGENTS.md SPDX / no-poll contract missing')
+    reuse = (source / 'REUSE.toml').read_text()
+    require('"AGENTS.md"' in reuse and '".cursor/**"' in reuse,
+            'REUSE annotations must cover tracked agent-policy files')
+    probe = (source / 'scripts/macos/native_test_probe.py').read_text()
+    require('--ctest-regex' in probe,
+            'Native probe must accept registered CTest name regex')
+    ci_text = (source / 'scripts/macos/ci.py').read_text()
+    require("'-DSWARAXT_SHARE_TEST_JUCE=' + ('OFF' if universal else 'ON')" in ci_text
+            and "CMAKE_SYSTEM_NAME STREQUAL \"Linux\" OR APPLE" in
+            (source / 'Tests/Qualification.cmake').read_text(),
+            'Apple native tests must share identically configured objects')
     workflow = (source / '.github/workflows/macos-qualification.yml').read_text()
     policy_text = (source / 'scripts/macos/policy.py').read_text()
     require("github.repository == 'Almeriya/SWARAPRIVATE'" in workflow

@@ -43,7 +43,9 @@ class SourceProfile133Tests(unittest.TestCase):
                   'AGENTS.md',
                   '.cursor/rules/macos-engineering.mdc',
                   '.cursor/rules/ci-no-polling.mdc',
-                  '.gitignore'):
+                  '.gitignore',
+                  'REUSE.toml',
+                  'cmake/Qualification.cmake'):
             cls.base.setdefault(p, 'baseline-sha')
             cls.current[p] = 'reviewed-sha'
         cls.base['third_party/shruthi-1'] = cls.current['third_party/shruthi-1'] = 'pinned'

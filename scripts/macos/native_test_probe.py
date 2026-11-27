@@ -18,6 +18,9 @@ class NativeTestProbe(Campaign):
     def execute(self):
         target = self.args.target
         require(re.fullmatch(r'[A-Za-z0-9_]+', target), 'Invalid CMake/CTest target name')
+        regex = self.args.ctest_regex or ('^' + re.escape(target) + '$')
+        require(re.fullmatch(r'\^?[A-Za-z0-9_$.|()\\-]+\$?', regex),
+                'Invalid CTest regex')
         try:
             juce = self.prepare()
             build, config = self.configure(juce)
@@ -25,17 +28,21 @@ class NativeTestProbe(Campaign):
                 ['ctest', '--test-dir', build, '--show-only=json-v1'], text=True, timeout=60))
             names = {test['name'] for test in listing['tests']}
             require(target in names, 'Requested CTest name is not registered: ' + target)
+            matched = sorted(name for name in names if re.search(regex, name))
+            require(matched, 'CTest regex matched no registered tests: ' + regex)
             self.run('build-target', [
                 'cmake', '--build', build, '--target', target, '--parallel', '2'], timeout=10800)
             self.run('ctest-target', [
                 'ctest', '--test-dir', build, '--output-on-failure', '--no-tests=error',
-                '-R', '^' + re.escape(target) + '$'], timeout=1800)
+                '-R', regex], timeout=1800)
             require(not subprocess.check_output(
                 ['git', 'status', '--porcelain'], cwd=SOURCE, text=True, timeout=120).strip(),
                 'Source checkout modified during diagnostic')
             self.report['decision'] = 'TARGETED_NATIVE_TEST_PASS_NOT_QUALIFIED'
             self.report['targeted_native_test'] = {
                 'target': target,
+                'ctest_regex': regex,
+                'matched_tests': matched,
                 'architecture': self.args.arch,
                 'profile': self.args.profile,
                 'config': config,
@@ -58,6 +65,8 @@ def main():
                         choices=['Release', 'Debug', 'asan-ubsan', 'tsan'], required=True)
     parser.add_argument('--target', required=True,
                         help='Exact registered CMake/CTest target name')
+    parser.add_argument('--ctest-regex', default=None,
+                        help='Optional registered CTest name regex; default is exact target')
     parser.add_argument('--root', type=Path, required=True)
     parser.add_argument('--source-sha', required=True)
     parser.add_argument('--base-source-sha',

@@ -32,16 +32,14 @@ jobs:
     name: targeted native test (${{ inputs.architecture }}, ${{ inputs.profile }}, ${{ matrix.target }})
     if: github.repository == 'Almeriya/SWARAPRIVATE' && github.event_name == 'workflow_dispatch'
     strategy:
-      # After compile recovery: isolate remaining ARM64 assertion failures one target at a time.
-      # Not a full matrix and never an audio-reference approval.
+      # Restore-completion overlay verification: every registered CTest variant
+      # for the two executables, including fault-injection names. Not audio approval.
       fail-fast: false
       max-parallel: 1
       matrix:
-        target:
-          - SwaraXTCorrectnessTests
-          - SwaraXTDualSvfDormancyTests
-          - SwaraXTWorkflowTests
-          - SwaraXTPlaybackRegressionTests
+        include:
+          - {target: SwaraXTRestoreCompletionTests, regex: '^SwaraXTRestoreCompletion'}
+          - {target: SwaraXTHostStateSafetyTests, regex: '^(SwaraXTHostStateSafetyTests|SwaraXTHostRestoreFault-)'}
     runs-on: ${{ inputs.architecture == 'arm64' && 'macos-15' || 'macos-15-intel' }}
     timeout-minutes: 240
     env:
@@ -51,6 +49,7 @@ jobs:
       TARGET_ARCH: ${{ inputs.architecture }}
       TARGET_PROFILE: ${{ inputs.profile }}
       PROBE_TARGET: ${{ matrix.target }}
+      PROBE_REGEX: ${{ matrix.regex }}
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
         with:
@@ -78,6 +77,7 @@ jobs:
           --arch "$TARGET_ARCH"
           --profile "$TARGET_PROFILE"
           --target "$PROBE_TARGET"
+          --ctest-regex "$PROBE_REGEX"
           --source-sha "$GITHUB_SHA"
       - name: Preserve probe evidence even on failure
         if: always()

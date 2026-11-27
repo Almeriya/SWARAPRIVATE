@@ -163,7 +163,8 @@ class Campaign(PublicInfrastructure):
                  '-DCMAKE_OSX_DEPLOYMENT_TARGET=11.0', '-DSWARAXT_JUCE_DIR=' + str(juce),
                  '-DSWARA_BUILD_STANDALONE=OFF', '-DSWARA_BUILD_SKIN_EDITOR=OFF',
                  '-DSWARA_BUILD_TESTS=' + ('OFF' if universal else 'ON'),
-                 '-DSWARAXT_SHARE_TEST_JUCE=OFF', '-DSWARAXT_SHARE_TEST_PRODUCTION=OFF',
+                 '-DSWARAXT_SHARE_TEST_JUCE=' + ('OFF' if universal else 'ON'),
+                 '-DSWARAXT_SHARE_TEST_PRODUCTION=' + ('OFF' if universal else 'ON'),
                  '-DCMAKE_C_FLAGS=' + ' '.join(flags), '-DCMAKE_CXX_FLAGS=' + ' '.join(flags),
                  '-DCMAKE_OBJCXX_FLAGS=' + ' '.join(flags)])
         cache = (build / 'CMakeCache.txt').read_text()

@@ -1,5 +1,6 @@
-# Build-owned exception boundary for the pinned Windows JUCE 9.0.1 checkout.
+# Build-owned exception boundary for pinned JUCE 9.0.1 (Windows and Apple).
 # The shared JUCE tree is copied into the build directory and patched there.
+# Input SHA-256 values are the CRLF objects at e18f7f506c0b96f2c738a0bcd7fe6467a5005ad8.
 function(swaraxt_verify_windows_restore_completion source generated)
     set(module "juce_audio_processors")
     file(GLOB_RECURSE original_files LIST_DIRECTORIES FALSE RELATIVE "${source}/${module}" "${source}/${module}/*")

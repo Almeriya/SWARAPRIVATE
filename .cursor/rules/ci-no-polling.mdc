@@ -3,7 +3,16 @@ description: Prevent CI polling, workflow waiting and repeated GitHub Actions st
 alwaysApply: true
 ---
 
+<!--
+SPDX-FileCopyrightText: 2026 MontroneDSP
+SPDX-License-Identifier: GPL-3.0-or-later
+-->
+
 # GitHub Actions — no wait / no poll
+
+**AGENTS MUST NOT POLL OR WAIT FOR GITHUB ACTIONS.**
+
+Permitted workflow: `INSPECT COMPLETED EVIDENCE → IMPLEMENT → COMMIT → PUSH → DISPATCH → REPORT → EXIT`
 
 Coding agents must never remain active solely to await GitHub Actions completion.
 

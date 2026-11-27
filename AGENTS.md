@@ -1,3 +1,8 @@
+<!--
+SPDX-FileCopyrightText: 2026 MontroneDSP
+SPDX-License-Identifier: GPL-3.0-or-later
+-->
+
 # SWARA XT — Agent Instructions
 
 Repository: Almeriya/SWARAPRIVATE. Active macOS work targets SWARA XT **1.3.3** on branch `port/swaraxt-133-macos-surgical` via existing **PR #1** (do not merge unless explicitly authorized).
@@ -39,6 +44,10 @@ Repository: Almeriya/SWARAPRIVATE. Active macOS work targets SWARA XT **1.3.3** 
 ## GITHUB ACTIONS NO-WAIT POLICY
 
 Coding agents must never remain active solely to await GitHub Actions completion. Agents may inspect completed workflow evidence once at the beginning of a task when required. After implementing, committing and pushing changes, dispatch the relevant CI workflow once, report the dispatch information and end the session. Do not poll, watch, sleep, repeatedly query GitHub, or start a new workflow based on results that have not yet arrived. CI results are reviewed in a separate user-initiated session.
+
+**AGENTS MUST NOT POLL OR WAIT FOR GITHUB ACTIONS.**
+
+Permitted workflow: `INSPECT COMPLETED EVIDENCE → IMPLEMENT → COMMIT → PUSH → DISPATCH → REPORT → EXIT`
 
 **Agents must work, commit, push, dispatch CI and exit.**
 

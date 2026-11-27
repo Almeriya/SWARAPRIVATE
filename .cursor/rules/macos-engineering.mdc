@@ -3,6 +3,11 @@ description: SWARA XT macOS engineering safety, parity, CI-only builds, and PR d
 alwaysApply: true
 ---
 
+<!--
+SPDX-FileCopyrightText: 2026 MontroneDSP
+SPDX-License-Identifier: GPL-3.0-or-later
+-->
+
 # macOS engineering constraints
 
 ## Source and product
