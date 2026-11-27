@@ -70,9 +70,20 @@ swaraxt_verify_windows_restore_completion("${SWARAXT_JUCE_DIR}/modules" "${resto
 include_directories(BEFORE "${restore_modules}")
 target_include_directories(juce_audio_processors BEFORE INTERFACE "${restore_modules}")
 get_target_property(restore_sources juce_audio_processors INTERFACE_SOURCES)
-string(REPLACE "${SWARAXT_JUCE_DIR}/modules/juce_audio_processors/juce_audio_processors.cpp"
-    "${restore_modules}/juce_audio_processors/juce_audio_processors.cpp" restore_sources "${restore_sources}")
-set_property(TARGET juce_audio_processors PROPERTY INTERFACE_SOURCES "${restore_sources}")
+set(restore_original_cpp "${SWARAXT_JUCE_DIR}/modules/juce_audio_processors/juce_audio_processors.cpp")
+set(restore_patched_cpp "${restore_modules}/juce_audio_processors/juce_audio_processors.cpp")
+set(restore_original_mm "${SWARAXT_JUCE_DIR}/modules/juce_audio_processors/juce_audio_processors.mm")
+set(restore_patched_mm "${restore_modules}/juce_audio_processors/juce_audio_processors.mm")
+set(restore_redirected "${restore_sources}")
+# Windows compiles the module .cpp; Apple JUCE replaces it with the .mm wrapper
+# that #includes the adjacent .cpp. Redirect whichever file the target actually
+# compiles, otherwise the original APVTS sources keep running.
+string(REPLACE "${restore_original_mm}" "${restore_patched_mm}" restore_redirected "${restore_redirected}")
+string(REPLACE "${restore_original_cpp}" "${restore_patched_cpp}" restore_redirected "${restore_redirected}")
+if(restore_redirected STREQUAL restore_sources)
+    message(FATAL_ERROR "JUCE 9.0.1 restore-completion source was not redirected into juce_audio_processors")
+endif()
+set_property(TARGET juce_audio_processors PROPERTY INTERFACE_SOURCES "${restore_redirected}")
 add_compile_definitions(SWARAXT_JUCE_RESTORE_COMPLETION=1)
 set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${restore_patch}")
 add_custom_target(SwaraXTVerifyRestoreCompletion

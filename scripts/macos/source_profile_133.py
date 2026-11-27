@@ -214,6 +214,10 @@ def compare_source_133(source, checkout_sha, base_sha, git_tree, original_base,
             and 'if(WIN32)' in deps
             and 'Juce901PngError.cmake' in deps,
             'MSVC PNG overlay must remain Windows-only')
+    overlay = (source / 'cmake/Juce901RestoreCompletion.cmake').read_text()
+    require('juce_audio_processors.mm' in overlay
+            and 'restore-completion source was not redirected' in overlay,
+            'Apple JUCE restore overlay must redirect the compiled .mm module wrapper')
     agents = (source / 'AGENTS.md').read_text()
     require('SPDX-License-Identifier: GPL-3.0-or-later' in agents
             and 'AGENTS MUST NOT POLL OR WAIT FOR GITHUB ACTIONS' in agents,
