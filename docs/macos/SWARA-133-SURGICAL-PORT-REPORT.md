@@ -147,9 +147,9 @@ PR: https://github.com/Almeriya/SWARAPRIVATE/pull/1 (keep unmerged while gates r
 
 ## Remaining blockers
 
-- Hosted `full` matrix on `ca3ccf3` **FAILED** (native compile) — recovery in progress; see amendment
-- Targeted ARM64 Debug probe of `SwaraXTCurrentPresetRestoreHeadlessTests` after harness fix
-- New universal `build` + one `full` matrix on the **new** recovery SHA (do not mix with `ca3ccf3` binaries)
+- Harness compile defect **fixed** on `f2c9433`; full matrix https://github.com/Almeriya/SWARAPRIVATE/actions/runs/45880728588 **FAILED** on assertions / timeouts (see amendment)
+- ARM64 native: 15 CTest assertion failures (audio goldens, restore-completion overlay, Correctness/DualSvf/Workflow/Playback)
+- Intel native + ARM64 ASan: **INTERRUPTED** (compile timeouts) — not product assertions; tests **NOT_RUN**
 - Independent Mac audio-reference admission remains **REVIEW_REQUIRED**
 - AU fourcc collision `aumu SwXT MnTr` with system 1.3.1 — owner confirmation required
 - Interactive REAPER GUI / listening: **OWNER ACTION REQUIRED**
@@ -159,7 +159,7 @@ PR: https://github.com/Almeriya/SWARAPRIVATE/pull/1 (keep unmerged while gates r
 
 **PARTIAL / BLOCKED** for merge and release.
 
-`ca3ccf3` hosted `build`/smoke/validators/REAPER offline evidence remains attributed to that SHA only. Native `full` failed on a stale headless test wrapper; recovery must establish a new exact SHA.
+Compile recovery for PresetRestore is complete on `f2c9433`. Merge remains blocked by audio authority **REVIEW_REQUIRED**, restore-completion overlay off on Apple, remaining host/assertion failures, and incomplete Intel/sanitizer native execution.
 
 ---
 
@@ -275,20 +275,28 @@ Recovery commits (do not mix with `ca3ccf3` binaries):
 
 | SHA | Role |
 | --- | --- |
-| `5f315ef261d79deed8b12cf7043f354775be7444` | Harness rename + probe script (preflight **FAIL**: path not yet allowlisted) |
-| `d20b12ac001bccb940f2184dadbb616011309b1d` | Recovery `workflow_dispatch` → single-target probe (same preflight **FAIL**) |
-| *(next)* | Allowlist + re-dispatch ARM64 Debug `SwaraXTCurrentPresetRestoreHeadlessTests` |
+| `5f315ef261d79deed8b12cf7043f354775be7444` | Harness rename + probe script — preflight **FAIL** (path not allowlisted) |
+| `d20b12ac001bccb940f2184dadbb616011309b1d` | Recovery `workflow_dispatch` wiring — same preflight **FAIL** |
+| `f2c9433e677c37c0c86e7837236a212e239117be` | Allowlist + recovery HEAD for Stage A/C |
 
-Stage A probe attempt: https://github.com/Almeriya/SWARAPRIVATE/actions/runs/45875899928 — **FAIL** (source profile; compile **NOT_RUN**)
+Stage A probe (failed allowlist): https://github.com/Almeriya/SWARAPRIVATE/actions/runs/45875899928 — **FAIL** (source profile; compile **NOT_RUN**)
 
-### Classification of native jobs (`45807588777`)
+Stage A probe (ARM64 Debug, `SwaraXTCurrentPresetRestoreHeadlessTests`): https://github.com/Almeriya/SWARAPRIVATE/actions/runs/45876762118 — **PASS** (`TARGETED_NATIVE_TEST_PASS_NOT_QUALIFIED`; not a full matrix)
+
+Stage C universal `build` on `f2c9433`: https://github.com/Almeriya/SWARAPRIVATE/actions/runs/45876750850 — **PASS** (preflight Intel/ARM + universal + gate; smoke/native skipped in `mode=build`)
+
+Stage C full matrix on exact SHA `f2c9433` (one dispatch; not mixed with `ca3ccf3`): https://github.com/Almeriya/SWARAPRIVATE/actions/runs/45880728588 — **FAIL** (gate)
+
+`SwaraXTCurrentPresetRestoreHeadlessTests` on ARM64 Debug/Release/TSan full inventory: **PASS** (compile defect recovered).
+
+### Classification of native jobs (`45807588777`, source `ca3ccf3`)
 
 | Profile | Result | Class |
 | --- | --- | --- |
 | ARM64 Debug | FAIL | **COMPILER** — undeclared identifier above |
 | ARM64 Release | FAIL | **COMPILER** — same |
 | ARM64 TSan | FAIL | **COMPILER** — same |
-| ARM64 ASan/UBSan | FAIL | **INTERRUPTED** (`ninja: build stopped: interrupted by user`) — not executed to assertion |
+| ARM64 ASan/UBSan | FAIL | **INTERRUPTED** — not executed to assertion |
 | Intel Debug | FAIL | **COMPILER** — same |
 | Intel Release | FAIL | **INTERRUPTED** |
 | Intel TSan | FAIL | **INTERRUPTED** |
@@ -296,14 +304,39 @@ Stage A probe attempt: https://github.com/Almeriya/SWARAPRIVATE/actions/runs/458
 
 Interrupted profiles are **not** product regressions and are **not** PASS.
 
+### Classification of native jobs (`45880728588`, source `f2c9433`)
+
+| Profile | Result | Class |
+| --- | --- | --- |
+| ARM64 Debug | FAIL | **TEST ASSERTION** — compile **PASS**; 15/154 CTest failures |
+| ARM64 Release | FAIL | **TEST ASSERTION** — same 15 failures |
+| ARM64 TSan | FAIL | **TEST ASSERTION** — same 15; no TSan race in failure list |
+| ARM64 ASan/UBSan | FAIL | **INTERRUPTED** — timeout ~10800s ~3553/5587; tests **NOT_RUN** |
+| Intel Debug | FAIL | **INTERRUPTED** — timeout ~10800s ~4645/5587; tests **NOT_RUN** |
+| Intel Release | FAIL | **INTERRUPTED** — timeout ~10800s ~3934/5587; tests **NOT_RUN** |
+| Intel TSan | FAIL | **INTERRUPTED** — timeout ~10800s ~3975/5587; tests **NOT_RUN** |
+| Intel ASan/UBSan | FAIL | **INTERRUPTED** — timeout ~10800s ~2088/5587; tests **NOT_RUN** |
+
+ARM64 Debug/Release/TSan shared failing CTest names (not compile):
+
+| Test | Class | First FAIL signal |
+| --- | --- | --- |
+| `SwaraXTAudioParityTests` | **AUDIO REFERENCE** | classic Tests F/G/I golden mismatch; hashes printed; authority **REVIEW_REQUIRED** |
+| `SwaraXTRestoreCompletion*` (6) | **HOST / OVERLAY** | restore cohort / notification; Apple JUCE restore-completion overlay still off |
+| `SwaraXTHostRestoreFault-{parameter,sequence,post,metadata}` | **HOST / OVERLAY** | exceptional restore containment |
+| `SwaraXTCorrectnessTests` | **ASSERTION** | `dedicated native LFO2 depth reaches board CV exactly once` |
+| `SwaraXTDualSvfDormancyTests` | **ASSERTION** | `real processor FIFO matches an independently indexed stream` |
+| `SwaraXTWorkflowTests` | **ASSERTION** | `locked pattern/extended arp preserved` |
+| `SwaraXTPlaybackRegressionTests` | **ASSERTION** | `old retained index remaps by saved name` |
+
+No goldens regenerated. No production DSP changed. Next: focused hosted single-target probes for the four non-audio/non-overlay assertions (no concurrent full matrix).
+
 ### Recovery tooling
 
 Added fail-closed, secret-free:
 
 - `scripts/macos/native_test_probe.py`
 - `.github/workflows/macos-native-test-probe.yml`
+- `workflow_dispatch` on registered `macos-build-recovery.yml` → sequential single-target probes
 
-Stage A: dispatch ARM64 Debug probe for `SwaraXTCurrentPresetRestoreHeadlessTests` only.
-Stage C: after probe PASS, allow push `build` then one `full` on the **new** SHA.
-
-Audio authority remains **REVIEW_REQUIRED**.
+Audio authority remains **REVIEW_REQUIRED**. PR #1 stays unmerged. Merge readiness: **BLOCKED**.

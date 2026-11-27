@@ -29,8 +29,19 @@ concurrency:
   cancel-in-progress: false
 jobs:
   targeted-native-test:
-    name: targeted native test (${{ inputs.architecture }}, ${{ inputs.profile }})
+    name: targeted native test (${{ inputs.architecture }}, ${{ inputs.profile }}, ${{ matrix.target }})
     if: github.repository == 'Almeriya/SWARAPRIVATE' && github.event_name == 'workflow_dispatch'
+    strategy:
+      # After compile recovery: isolate remaining ARM64 assertion failures one target at a time.
+      # Not a full matrix and never an audio-reference approval.
+      fail-fast: false
+      max-parallel: 1
+      matrix:
+        target:
+          - SwaraXTCorrectnessTests
+          - SwaraXTDualSvfDormancyTests
+          - SwaraXTWorkflowTests
+          - SwaraXTPlaybackRegressionTests
     runs-on: ${{ inputs.architecture == 'arm64' && 'macos-15' || 'macos-15-intel' }}
     timeout-minutes: 240
     env:
@@ -39,8 +50,7 @@ jobs:
       SWARAXT_REPOSITORY_PRIVATE: ${{ github.event.repository.private }}
       TARGET_ARCH: ${{ inputs.architecture }}
       TARGET_PROFILE: ${{ inputs.profile }}
-      # Exact registered CTest name for the confirmed PresetRestore harness fix.
-      PROBE_TARGET: SwaraXTCurrentPresetRestoreHeadlessTests
+      PROBE_TARGET: ${{ matrix.target }}
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
         with:
