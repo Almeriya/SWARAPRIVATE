@@ -33,6 +33,14 @@ _ALLOWED_META = {
     'scripts/macos/native_test_probe.py',
     # One-line Current wrapper rename: ProgramChange → PresetSelection after prepare.
     'Tests/Current/PresetRestoreHeadlessTestsMain.cpp',
+    # macOS assertion-recovery test contract fixes (not production Source/).
+    'Tests/Correctness/CorrectnessTestsMain.cpp',
+    'Tests/Dormancy/DualSvfDormancyTestsMain.cpp',
+    'Tests/Sequencer/WorkflowTestsMain.cpp',
+    'Tests/Sequencer/PlaybackRegressionTestsMain.cpp',
+    'AGENTS.md',
+    '.cursor/rules/macos-engineering.mdc',
+    '.cursor/rules/ci-no-polling.mdc',
 }
 _BUILD_RECOVERY_META = {
     'scripts/macos/build_recovery_probe.py',

@@ -35,7 +35,14 @@ class SourceProfile133Tests(unittest.TestCase):
                   '.github/workflows/macos-development-build.yml',
                   '.github/workflows/macos-native-test-probe.yml',
                   'scripts/macos/native_test_probe.py',
-                  'Tests/Current/PresetRestoreHeadlessTestsMain.cpp'):
+                  'Tests/Current/PresetRestoreHeadlessTestsMain.cpp',
+                  'Tests/Correctness/CorrectnessTestsMain.cpp',
+                  'Tests/Dormancy/DualSvfDormancyTestsMain.cpp',
+                  'Tests/Sequencer/WorkflowTestsMain.cpp',
+                  'Tests/Sequencer/PlaybackRegressionTestsMain.cpp',
+                  'AGENTS.md',
+                  '.cursor/rules/macos-engineering.mdc',
+                  '.cursor/rules/ci-no-polling.mdc'):
             cls.base.setdefault(p, 'baseline-sha')
             cls.current[p] = 'reviewed-sha'
         cls.base['third_party/shruthi-1'] = cls.current['third_party/shruthi-1'] = 'pinned'

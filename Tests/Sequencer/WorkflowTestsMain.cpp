@@ -39,7 +39,9 @@ void lockChecks(const juce::File& output) {
     juce::String error;
     check(p.saveUserPreset("Workflow", true, error), "save workflow fixture");
     SwaraXtAudioProcessor::PresetEntry user { "Workflow", output.getChildFile("presets/Workflow.swaraxtpreset"), -1, false };
-    const std::array<float, 9> values {2, 173, 39, 1, 71, 3, 6, 4, 9};
+    // Host ARP automation (APVTS) is authoritative and must stay aligned with
+    // SequenceState.arpPattern; diverging them is not a valid lock fixture.
+    const std::array<float, 9> values {2, 173, 39, 1, 71, 3, 15, 4, 9};
     for (size_t i = 0; i < values.size(); ++i) set(p, swaraxt::sequenceParameterIds[i], values[i]);
     auto pattern = swaraxt::SequenceState::defaultSnapshot();
     pattern.length = 11; pattern.rotation = 3; pattern.grooveTemplate = 4; pattern.arpPattern = 15;

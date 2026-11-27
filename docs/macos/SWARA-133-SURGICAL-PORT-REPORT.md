@@ -355,3 +355,55 @@ Added fail-closed, secret-free:
 - `workflow_dispatch` on registered `macos-build-recovery.yml` → sequential single-target probes
 
 Audio authority remains **REVIEW_REQUIRED**. PR #1 stays unmerged. Merge readiness: **BLOCKED**.
+
+## Amendment — permanent agent instructions + four assertion contract fixes
+
+### Tracked agent policy (committed)
+
+| File | Role |
+| --- | --- |
+| `AGENTS.md` | Root agent instructions incl. GITHUB ACTIONS NO-WAIT POLICY |
+| `.cursor/rules/ci-no-polling.mdc` | alwaysApply: no CI polling / watch / sleep-wait |
+| `.cursor/rules/macos-engineering.mdc` | alwaysApply: parity, no local compile, Apple security, PR discipline |
+
+`.gitignore` updated so these are **not** excluded. Verified with `git check-ignore` / `git add`.
+
+### Fix A — LFO2 board CV (`SwaraXTCorrectnessTests`)
+
+- **Assertion:** `dedicated native LFO2 depth reaches board CV exactly once`
+- **Classification:** **TEST BUG** (stale expectation)
+- **Root cause:** Classic `boardCutoffCvVolts` includes intentional `knobCutoffTrimBytes_`; test compared against `voice.cutoff()*5/255` only. LFO2 still applied once in firmware.
+- **Correction:** Expect board CV = `(cutoff + knobCutoffTrimBytes_) * 5/255`. Production DSP unchanged.
+- **CI:** focused ARM64 Debug — **PENDING**
+
+### Fix B — Dual SVF FIFO (`SwaraXTDualSvfDormancyTests`)
+
+- **Assertion:** `real processor FIFO matches an independently indexed stream`
+- **Classification:** **TEST BUG**
+- **Root cause:** CC120 `applyEmergencySilence()` resets production Dual delay while awake; Trace only cleared on dormancy → model desync.
+- **Correction:** `armPanicResync` on CC120 host blocks; clear independent FIFO at next tap. Production panic reset preserved.
+- **CI:** focused ARM64 Debug — **PENDING**
+
+### Fix C — Sequence lock (`SwaraXTWorkflowTests`)
+
+- **Assertion:** `locked pattern/extended arp preserved`
+- **Classification:** **TEST BUG**
+- **Root cause:** Fixture set APVTS `arp.pattern=6` then `SequenceState.arpPattern=15`. Host restore re-applies APVTS ARP authority over SEQUENCE arp (intentional).
+- **Correction:** Align APVTS arp pattern with sequence (`15`). Lock/preset product paths unchanged.
+- **CI:** focused ARM64 Debug — **PENDING**
+
+### Fix D — Historical preset remap (`SwaraXTPlaybackRegressionTests`)
+
+- **Assertion:** `old retained index remaps by saved name`
+- **Classification:** **TEST BUG**
+- **Root cause:** After `setStateInformation`, `setCurrentProgram` is intentionally a no-op (`hostSessionStateRestored_`). Later iterations never re-selected the intended factory program.
+- **Correction:** Use `loadFactoryPreset(51+i)` for explicit selection before remap capture. Product remapping loop unchanged.
+- **CI:** focused ARM64 Debug — **PENDING**
+
+### Still blocked (unchanged)
+
+- AudioParity goldens → **REVIEW_REQUIRED** (no golden regen)
+- RestoreCompletion / HostRestoreFault → Apple JUCE restore-completion overlay still off (Windows CRLF overlay not applied to Apple)
+- Intel/sanitizer full-matrix compile timeouts → **INTERRUPTED** / **NOT_RUN**
+
+Focused dispatch after this amendment: recovery workflow ARM64 Debug matrix of the four targets — results **PENDING** (no-wait policy).
