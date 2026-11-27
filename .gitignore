@@ -61,16 +61,13 @@ Thumbs.db
 *.VC.opendb
 *.opendb
 
-# Agent / IDE local policy (never commit to public tree)
-.cursor/
-AGENTS.md
-AGENT.md
-agents.md
-agent.md
+# Cursor local state — keep tracked repository agent policy (AGENTS.md + .mdc)
+.cursor/*
+!.cursor/rules/
+.cursor/rules/*
+!.cursor/rules/*.mdc
 .cursorrules
 .cursorignore
-**/.cursor/
-**/AGENTS.md
 
 # Temporary files and secrets
 __pycache__/
