@@ -540,3 +540,25 @@ Exceptions were contained (`escaped=0`, was `escaped=1` at `59a6686`). Live rang
 **Root cause:** JUCE 9.0.1 on Apple compiles `juce_audio_processors.mm` (which `#include`s the adjacent `.cpp`). The overlay only redirected the Windows `.cpp` INTERFACE_SOURCES path, so the original unpatched APVTS implementation kept running. Processor `#if SWARAXT_JUCE_RESTORE_COMPLETION` still caught the first listener throw, which is why `escaped=0` while the cohort stayed mixed.
 
 Fix: redirect the compiled `.mm` wrapper into the build-local patched module and fail closed if neither `.mm` nor `.cpp` was replaced. Hosted ARM64 Debug restore probes **PENDING**. REUSE is not a release blocker for this recovery. Full matrix **not dispatched**.
+
+---
+
+## Amendment — ARM64 Debug restore overlay proven (`4e815cb`)
+
+Source: `4e815cba5f3227ca48be7ca252fe56f58afa9a8a` (overlay redirect `786e020`).  
+Focused ARM64 Debug: https://github.com/Almeriya/SWARAPRIVATE/actions/runs/46057810771 — **PASS** (`TARGETED_NATIVE_TEST_PASS_NOT_QUALIFIED`; not full qualification).
+
+RestoreCompletion (`^SwaraXTRestoreCompletion`) 6/6 **PASS**:
+
+| Test | Result |
+| --- | --- |
+| `SwaraXTRestoreCompletionTests` | PASS |
+| `SwaraXTRestoreCompletion-listeners` | PASS |
+| `SwaraXTRestoreCompletion-preempt` | PASS |
+| `SwaraXTRestoreCompletion-root` | PASS |
+| `SwaraXTRestoreCompletion-allocation` | PASS |
+| `SwaraXTRestoreCompletion-admission` | PASS |
+
+Host restore (`^(SwaraXTHostStateSafetyTests|SwaraXTHostRestoreFault-)`) 8/8 **PASS**, including negative controls decode/tuning/snapshot and previously failing parameter/sequence/post/metadata.
+
+Next focused step: equivalent Intel x86_64 Debug restore probes. Full eight-profile matrix **not dispatched**. Classic F/G/I audio authority remains **REVIEW_REQUIRED**. PR #1 stays unmerged.
