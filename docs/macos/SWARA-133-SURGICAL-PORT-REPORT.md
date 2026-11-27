@@ -628,5 +628,5 @@ Historical `parity_probe.py` overlays are pinned to a pre-1.3.3 baseline and wer
 | Restore evidence SHA | `a7f8fb62ae30754bf59b87456873969b3044df13` |
 | ARM64 Debug restore | [46057810771](https://github.com/Almeriya/SWARAPRIVATE/actions/runs/46057810771) PASS |
 | Intel Debug restore | [46059870502](https://github.com/Almeriya/SWARAPRIVATE/actions/runs/46059870502) PASS |
-| Focused Intel Debug Classic PCM capture | **PENDING** after this commit (workflow `macos-native-test-probe.yml`, `SwaraXTAudioParityTests`, `--classic-pcm-capture`) |
+| Focused Intel Debug Classic PCM capture | **PENDING** after this commit (workflow `macos-build-recovery.yml`, `suite=classic-pcm`, `SwaraXTAudioParityTests`, `--classic-pcm-capture`) |
 | Full eight-profile matrix | **not dispatched** |

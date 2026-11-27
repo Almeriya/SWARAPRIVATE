@@ -252,6 +252,10 @@ def compare_source_133(source, checkout_sha, base_sha, git_tree, original_base,
     require('classic_pcm_capture' in probe_workflow
             and 'never admits goldens' in probe_workflow,
             'Native probe workflow must expose Classic PCM capture without golden admission')
+    recovery_workflow = (source / '.github/workflows/macos-build-recovery.yml').read_text()
+    require("inputs.suite == 'classic-pcm'" in recovery_workflow
+            and '--classic-pcm-capture' in recovery_workflow,
+            'Recovery workflow must dispatch Classic PCM capture without golden admission')
     ci_text = (source / 'scripts/macos/ci.py').read_text()
     require("'-DSWARAXT_SHARE_TEST_JUCE=' + ('OFF' if universal else 'ON')" in ci_text
             and "CMAKE_SYSTEM_NAME STREQUAL \"Linux\" OR APPLE" in
