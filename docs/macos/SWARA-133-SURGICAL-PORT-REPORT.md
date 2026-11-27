@@ -630,3 +630,104 @@ Historical `parity_probe.py` overlays are pinned to a pre-1.3.3 baseline and wer
 | Intel Debug restore | [46059870502](https://github.com/Almeriya/SWARAPRIVATE/actions/runs/46059870502) PASS |
 | Focused Intel Debug Classic PCM capture | **PENDING** after this commit (workflow `macos-build-recovery.yml`, `suite=classic-pcm`, `SwaraXTAudioParityTests`, `--classic-pcm-capture`) |
 | Full eight-profile matrix | **not dispatched** |
+
+---
+
+## Amendment — Classic F/G/I parity forensics (Intel capture complete; ARM64 PCM PENDING)
+
+Diagnostic only. Not qualification. Goldens were **not** rewritten. Production DSP was **not** changed. `native_reference.py` remains fail-closed. PR #1 unmerged.
+
+### Intel source-bound capture — **PASS** as capture, **FAIL** vs Mac header, **match** vs public 1.3.3
+
+| Item | Value |
+| --- | --- |
+| Run | https://github.com/Almeriya/SWARAPRIVATE/actions/runs/46062372695 |
+| Decision | `TARGETED_NATIVE_AUDIO_CAPTURE_NOT_QUALIFIED` |
+| Source SHA | `0b4d546cbb33382a889a589d370e987f84517ca7` |
+| Arch / profile | x86_64 Debug, `macos-15-intel`, macOS 15.7.9 |
+| Toolchain | Xcode 16.4 (16F6), Apple Clang 17.0.0, JUCE `e18f7f506c0b96f2c738a0bcd7fe6467a5005ad8` |
+| Target | `SwaraXTAudioParityTests` with `SWARAXT_CLASSIC_PCM_CAPTURE` |
+| CTest | exit 8; only F/G/I `expect()` failed; eight float32 files retained |
+| Historical overlays | **not used** |
+
+Independently rehashed Intel float32 with `parity_metrics.py` Q23 (clamp [-8,8], byte-FNV). All eight renders finite. Sample count 44100.
+
+| Case | Intel Q23 | Intel PCM SHA-256 | Phase3 provenance PCM | Public 1.3.3 golden | Mac header `CurrentAudioGoldens.h` |
+| --- | --- | --- | --- | --- | --- |
+| A saw | `e49a2f5d8a7090f9` | `c9456464…4632` bitwise equal | equal | equal | equal |
+| B square | `608f87853120af8e` | `7f708fd7…438e` bitwise equal | equal | equal | equal |
+| C mix | `2e5f9d73aeaa1820` | `553151ff…d5e5` bitwise equal | equal | equal | equal |
+| D noise | `c473d3385b5767ba` | `99734369…0349` bitwise equal | equal | equal | equal |
+| J silence | `81296f5b21ed7843` | `fd6f4795…95bc` bitwise equal | equal | equal | equal |
+| F low res | `7cad43fd9155360d` | `8abd8247…de7f` **not equal** | `0099139bef0f1690` | **`7cad43fd9155360d`** | `0099139bef0f1690` |
+| G high res | `b583834c32a65866` | `ac911f6a…87a8` **not equal** | `1ac4a6fabf9a3da5` | **`b583834c32a65866`** | `1ac4a6fabf9a3da5` |
+| I envelope | `ac2c238b499d0be4` | `aa321d8f…619a` **not equal** | `8bed59407b8e5da6` | **`ac2c238b499d0be4`** | `8bed59407b8e5da6` |
+
+A/B/C/D/J Intel Debug PCM is bit-identical to the Phase3 Linux reference captures in `Tests/References/CurrentAudioReferenceProvenance.json`. Host SRC, open-filter, grid-aligned cutoff, noise, and silence paths are not the discrepancy.
+
+Peak/RMS vs provenance JSON (original F/G/I PCM bytes are not in this tree, so first-divergent-sample vs Phase3 PCM is **NOT_RUN**):
+
+| Case | Intel peak / RMS | Provenance peak / RMS |
+| --- | --- | --- |
+| F | 0.441951 / 0.116106 | 0.442104 / 0.116133 |
+| G | 0.674146 / 0.276321 | 0.673574 / 0.283832 |
+| I | 0.399926 / 0.078158 | 0.398669 / 0.078109 |
+
+### ARM64 same-SHA PCM comparison — **PENDING**
+
+Earlier ARM64 Q23 at `59a6686` printed the same F/G/I hashes, but that is a different source revision and is only Q23. Float32 equality vs this Intel capture is **NOT_RUN** until the matching ARM64 job on `0b4d546` completes.
+
+Dispatched after this report: workflow `macos-build-recovery.yml`, `suite=classic-pcm`, `architecture=arm64`, `profile=Debug`, ref `0b4d546cbb33382a889a589d370e987f84517ca7`. Result **PENDING**. Do not treat diagnostic completion as qualification.
+
+### Cause — not an ARM64-only DSP bug
+
+`Source/Engine/SwaraXtEngine.cpp` Classic cutoff path is **identical** to official public 1.3.3 `6ea598e47fb0347d23ffa538a64b02318187a7ed` (`git diff` empty). Public 1.3.3 `AudioRegressionTestsMain.cpp` uses the same F/G/I stimuli (1200 Hz / 0.25, 900 Hz / 0.82, 650 Hz / 0.35).
+
+Phase3 goldens (`a21530355b03d78749f30afc3c1048d7ca36000d`) quantized panel Hz with `shruthiCutoffCode()` only and set `boardCutoffCvVolts` from `voice.cutoff()` with no sub-semitone remainder.
+
+1.3.3 added `shruthiCutoffCodeUnrounded` + `knobCutoffTrimBytes_` on the Classic path only (Dual SVF still consumes the integer byte). Grid-aligned panel values snap to trim 0 (`kKnobGridSnapSemitones = 0.002`):
+
+| Panel Hz | Unrounded code | Firmware code | Trim bytes |
+| --- | --- | --- | --- |
+| 20000 (A/B/C/J) | 127.000 | 127 | 0 |
+| 5000 (D) | 103.000 | 103 | 0 |
+| 1200 (F) | 78.293 | 78 | +0.587 |
+| 900 (G) | 73.313 | 73 | +0.626 |
+| 650 (I) | 67.679 | 68 | −0.642 |
+
+That remainder is then added after firmware CV: `(voice.cutoff() + 24*extraOctaves + knobCutoffTrimBytes_) * 5/255`. It is the documented 1.3.3 Classic knob-resolution change, not envelope, LFO, SRC, or Apple `realFromChars` (tests assign cutoff Hz through `AudioParameterFloat::operator=`).
+
+Classification:
+
+| Hypothesis | Verdict |
+| --- | --- |
+| A. Valid intentional 1.3.3 DSP | **Supported** for F/G/I. Public 1.3.3 already encodes the new hashes. |
+| B. Unintended Mac DSP regression | **Not supported** from this evidence. Engine cutoff matches public 1.3.3; A/B/C/D/J are bitwise Phase3. |
+| C. Stale Mac reference header | **Supported**. Surgical port kept protected Phase3 `CurrentAudioGoldens.h`; public 1.3.3 updated F/G/I only. |
+| D. Test-implementation defect | **Not supported**. Stimuli, rate, block, note, and release match public 1.3.3 and provenance. |
+
+A shared Intel/ARM64 Q23 is **not** architecture-specific authority and is **not** by itself a golden admission.
+
+### Golden-authority recommendation — **REVIEW_REQUIRED**
+
+Do **not** copy Intel hashes into `CurrentAudioGoldens.h` from this capture. The independent next admission package is:
+
+1. Source `0b4d546cbb33382a889a589d370e987f84517ca7` (this Intel capture) plus matching ARM64 PCM on the same SHA.
+2. Provenance: Phase3 JSON for A/B/C/D/J bitwise identity; public 1.3.3 `Tests/Parity/CurrentAudioGoldens.h` for F/G/I.
+3. Original expected: Phase3 F/G/I hashes above.
+4. Current Intel PCM SHA-256 table above.
+5. Current ARM64 PCM: **PENDING**.
+6–8. First divergence vs Phase3 F/G/I PCM **NOT_RUN** (bytes absent); vs ARM64 **PENDING**. DSP analysis: fractional Classic trim as above.
+9. Intentional 1.3.3 behavior; Mac header lagged the public product.
+10. Architecture-specific Classic tables are **not** justified by Q23 alone. Keep Intel and ARM64 maps logically separate until same-SHA float32 comparison. If ARM64 PCM equals Intel PCM, owner may admit the **public 1.3.3** F/G/I hashes (not a candidate self-hash) into the Mac protected header.
+
+`native_reference.py` stays empty. No DSP correction is proposed.
+
+### Remaining qualification blockers
+
+1. Same-SHA ARM64 Classic PCM vs Intel — **PENDING**.
+2. Owner admission of public 1.3.3 F/G/I goldens into the Mac header — **REVIEW_REQUIRED**.
+3. Restore completion in Release / asan-ubsan / tsan — **NOT_RUN**.
+4. Native full-inventory timeouts — **INCOMPLETE**.
+5. Full eight-profile matrix — **not dispatched**.
+6. PR #1 unmerged.
