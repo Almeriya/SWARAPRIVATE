@@ -497,6 +497,19 @@ void runAudioParity()
         std::printf("GOLDEN classic %s samples=%zu hash=%016llx\n",
                     scenario.name, audio.size(),
                     static_cast<unsigned long long>(m.hash));
+#if defined(SWARAXT_CLASSIC_PCM_CAPTURE)
+        {
+            fs::create_directories(artifactRoot() / "f32");
+            const auto rawPath = artifactRoot() / "f32" / (std::string(scenario.file) + ".f32");
+            std::ofstream raw(rawPath, std::ios::binary);
+            raw.write(reinterpret_cast<const char*>(audio.data()),
+                      static_cast<std::streamsize>(audio.size() * sizeof(float)));
+            raw.flush();
+            expect(static_cast<bool>(raw), "classic float32 capture write");
+            std::printf("CAPTURE classic %s path=%s bytes=%zu\n",
+                        scenario.name, rawPath.string().c_str(), audio.size() * sizeof(float));
+        }
+#endif
         const auto* expected=swaraxt_current_golden::find(swaraxt_current_golden::kClassic,
             swaraxt_current_golden::kClassicCount,scenario.name);
         expect(expected!=nullptr,"current classic case exists");

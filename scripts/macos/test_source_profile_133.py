@@ -35,6 +35,8 @@ class SourceProfile133Tests(unittest.TestCase):
                   '.github/workflows/macos-development-build.yml',
                   '.github/workflows/macos-native-test-probe.yml',
                   'scripts/macos/native_test_probe.py',
+                  'scripts/macos/native_reference.py',
+                  'scripts/macos/test_native_reference.py',
                   'Tests/Current/PresetRestoreHeadlessTestsMain.cpp',
                   'Tests/Correctness/CorrectnessTestsMain.cpp',
                   'Tests/Dormancy/DualSvfDormancyTestsMain.cpp',
@@ -129,6 +131,12 @@ class SourceProfile133Tests(unittest.TestCase):
     def test_audio_authority_never_self_approved(self):
         report = validate_tree(self.base, self.current, self.manifest)
         self.assertEqual(report['native_audio_reference'], 'REVIEW_REQUIRED')
+
+    def test_runtime_spdx_assertion_is_split_for_reuse(self):
+        text = MANIFEST.with_name('source_profile_133.py').read_text()
+        self.assertEqual(text.count('SPDX-License-Identifier:'), 1)
+        self.assertIn("'SPDX-License-'", text)
+        self.assertIn("'Identifier: GPL-3.0-or-later'", text)
 
 
 if __name__ == '__main__':

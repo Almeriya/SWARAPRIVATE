@@ -562,3 +562,71 @@ RestoreCompletion (`^SwaraXTRestoreCompletion`) 6/6 **PASS**:
 Host restore (`^(SwaraXTHostStateSafetyTests|SwaraXTHostRestoreFault-)`) 8/8 **PASS**, including negative controls decode/tuning/snapshot and previously failing parameter/sequence/post/metadata.
 
 Next focused step: equivalent Intel x86_64 Debug restore probes. Full eight-profile matrix **not dispatched**. Classic F/G/I audio authority remains **REVIEW_REQUIRED**. PR #1 stays unmerged.
+
+---
+
+## Amendment — Intel Debug restore PASS, REUSE SPDX split, architecture-specific audio authority
+
+Source inspected for restore: `a7f8fb62ae30754bf59b87456873969b3044df13`.  
+ARM64 Debug restore (already recorded): https://github.com/Almeriya/SWARAPRIVATE/actions/runs/46057810771 — **PASS** at `4e815cba5f3227ca48be7ca252fe56f58afa9a8a`.  
+Intel x86_64 Debug restore: https://github.com/Almeriya/SWARAPRIVATE/actions/runs/46059870502 — **PASS** (`TARGETED_NATIVE_TEST_PASS_NOT_QUALIFIED`; not full qualification). Runner image macOS 15.7.9 / `macos-15-intel`. Overlay compiled and exercised on Intel; ARM64 success was not treated as Intel success.
+
+RestoreCompletion (`^SwaraXTRestoreCompletion`) 6/6 **PASS**, CTest exit 0:
+
+| Test | Result |
+| --- | --- |
+| `SwaraXTRestoreCompletionTests` | PASS |
+| `SwaraXTRestoreCompletion-listeners` | PASS |
+| `SwaraXTRestoreCompletion-preempt` | PASS |
+| `SwaraXTRestoreCompletion-root` | PASS |
+| `SwaraXTRestoreCompletion-allocation` | PASS |
+| `SwaraXTRestoreCompletion-admission` | PASS |
+
+Host restore (`^(SwaraXTHostStateSafetyTests|SwaraXTHostRestoreFault-)`) 8/8 **PASS**, CTest exit 0, including default `SwaraXTHostStateSafetyTests` and fault-decode/tuning/snapshot/parameter/sequence/post/metadata. Intel-only restore assertions: **none**. Release and sanitizer restore remain **NOT_RUN**.
+
+### REUSE
+
+Hosted scanner `INVALID SPDX LICENSE EXPRESSIONS` on `scripts/macos/source_profile_133.py` was a false positive: a quoted runtime assertion contained a contiguous `SPDX-License-Identifier:` token. The file header SPDX declaration is unchanged. The AGENTS.md contract still requires the exact concatenated string `SPDX-License-Identifier: GPL-3.0-or-later` plus **AGENTS MUST NOT POLL OR WAIT FOR GITHUB ACTIONS**. The Python source now builds that expected text from adjacent literals so REUSE does not treat the assertion as license metadata. Policy files stay tracked. REUSE checks were not weakened. Hosted REUSE on the commit that lands this split: **PENDING** (push-triggered `reuse.yml`; not polled).
+
+### Historical vs 1.3.3 Classic fingerprints
+
+Independent architectures. Exact hash agreement on one qualified platform is not numerical agreement across architectures, is not functional DSP proof, and is not golden admission.
+
+Historical native-parity campaign (different source SHAs and CI images; Intel macOS 15.7.9 vs ARM macOS 15.8.2). Classic Q23:
+
+| Case | Current expected | Historical Intel | Historical ARM64 |
+| --- | --- | --- | --- |
+| A basic saw | `e49a2f5d8a7090f9` | match | `f9725e4f5d9bb16f` |
+| B basic square | `608f87853120af8e` | match | `9c73de87bfbf918c` |
+| C two oscillators | `2e5f9d73aeaa1820` | match | `891cf7e6718ed085` |
+| F filter low res | `0099139bef0f1690` | match | `3ae4cc8a316fa919` |
+| G filter high res | `1ac4a6fabf9a3da5` | match | `1038dce5870f43fc` |
+| I envelope | `8bed59407b8e5da6` | match | `d86c4cef594559fb` |
+| D noise | `c473d3385b5767ba` | match | `6fadc27660522c49` |
+| J silence | `81296f5b21ed7843` | match | match |
+
+Those historical ARM64 hashes are **not** 1.3.3 authority. 1.3.3 ARM64 (`59a6686` AudioParity) matched A/B/C/D/J expected hashes; F/G/I printed `7cad43fd9155360d` / `b583834c32a65866` / `ac2c238b499d0be4`. Historical ARM64 F/G/I were `3ae4cc8a316fa919` / `1038dce5870f43fc` / `d86c4cef594559fb`. 1.3.3 Intel Classic hashes: **NOT_RUN** until the capture below. WAV int16 artifacts are not forensic PCM.
+
+Historical `parity_probe.py` overlays are pinned to a pre-1.3.3 baseline and were **not** applied. 1.3.3 capture is build-owned: `SWARAXT_CLASSIC_PCM_CAPTURE` on `SwaraXTAudioParityTests` only, default OFF, writes host-rate float32 dumps after the existing render and **before** golden `expect()`. Production DSP is unchanged. CTest hash mismatch does not admit a golden. Later comparison uses existing `parity_metrics.py` on those dumps (first divergent sample, abs/RMS/relative, ULP, Q23). Repeatability, filter/envelope intermediates, and instrumentation deltas remain **NOT_RUN** until both architectures have captures from the same 1.3.3 SHA.
+
+### Reference-admission process (empty until owner approval)
+
+`native_reference.py` now has separate `APPROVED_REFERENCES` maps for `x86_64` and `arm64`. Both are `{}`. Unknown architecture or profile fails closed. A non-empty table still cannot self-approve a candidate. `TESTS = {}` is unchanged. `validate_tree` still returns `native_audio_reference: REVIEW_REQUIRED`. `CurrentAudioGoldens.h` is unchanged. A golden valid on Intel is not authority for ARM64, and vice versa. Admission requires owner review of architecture-tagged raw PCM, metrics, toolchain, and source SHA — not repeated renders alone.
+
+### Outstanding native CI qualification blockers
+
+1. Classic F/G/I architecture-specific authority — **REVIEW_REQUIRED**; Intel float32 capture **PENDING** this dispatch; ARM64 capture not dispatched this session.
+2. Restore completion in Release / asan-ubsan / tsan — **NOT_RUN**.
+3. Native full-inventory ~5600-step timeouts and interrupted Intel/sanitizer jobs — **INCOMPLETE**, not product FAIL.
+4. No owner-approved Mac audio references; full eight-profile matrix **not dispatched**.
+5. PR #1 unmerged. No release artifacts.
+
+### Commits and dispatches this session
+
+| Item | Identity |
+| --- | --- |
+| Restore evidence SHA | `a7f8fb62ae30754bf59b87456873969b3044df13` |
+| ARM64 Debug restore | [46057810771](https://github.com/Almeriya/SWARAPRIVATE/actions/runs/46057810771) PASS |
+| Intel Debug restore | [46059870502](https://github.com/Almeriya/SWARAPRIVATE/actions/runs/46059870502) PASS |
+| Focused Intel Debug Classic PCM capture | **PENDING** after this commit (workflow `macos-native-test-probe.yml`, `SwaraXTAudioParityTests`, `--classic-pcm-capture`) |
+| Full eight-profile matrix | **not dispatched** |

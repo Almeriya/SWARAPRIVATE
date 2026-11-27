@@ -22,6 +22,11 @@ on:
         type: string
         required: true
         default: SwaraXTCurrentPresetRestoreHeadlessTests
+      classic_pcm_capture:
+        description: Write Classic float32 captures; never admits goldens
+        type: boolean
+        required: false
+        default: false
 permissions:
   contents: read
 concurrency:
@@ -58,14 +63,27 @@ jobs:
         shell: bash
         env:
           RUNNER_ENVIRONMENT: ${{ runner.environment }}
-        run: >-
-          python3 scripts/macos/native_test_probe.py
-          --root "$RUNNER_TEMP/swara-native-test-probe"
-          --arch "${{ inputs.architecture }}"
-          --profile "${{ inputs.profile }}"
-          --target "${{ inputs.target }}"
-          --source-sha "$GITHUB_SHA"
-          --base-source-sha 5e7b967db0b52f773f382217a72c6c0c3ff6b8f7
+          PROBE_CLASSIC_PCM: ${{ inputs.classic_pcm_capture }}
+        run: |
+          set -euo pipefail
+          if [ "${PROBE_CLASSIC_PCM}" = "true" ]; then
+            python3 scripts/macos/native_test_probe.py \
+              --root "$RUNNER_TEMP/swara-native-test-probe" \
+              --arch "${{ inputs.architecture }}" \
+              --profile "${{ inputs.profile }}" \
+              --target "${{ inputs.target }}" \
+              --source-sha "$GITHUB_SHA" \
+              --base-source-sha 5e7b967db0b52f773f382217a72c6c0c3ff6b8f7 \
+              --classic-pcm-capture
+          else
+            python3 scripts/macos/native_test_probe.py \
+              --root "$RUNNER_TEMP/swara-native-test-probe" \
+              --arch "${{ inputs.architecture }}" \
+              --profile "${{ inputs.profile }}" \
+              --target "${{ inputs.target }}" \
+              --source-sha "$GITHUB_SHA" \
+              --base-source-sha 5e7b967db0b52f773f382217a72c6c0c3ff6b8f7
+          fi
       - name: Preserve probe evidence including failures
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
@@ -75,6 +93,7 @@ jobs:
             ${{ runner.temp }}/swara-native-test-probe/*.log
             ${{ runner.temp }}/swara-native-test-probe/*.json
             ${{ runner.temp }}/swara-native-test-probe/*.xml
+            ${{ runner.temp }}/swara-native-test-probe/classic-pcm/**
             ${{ runner.temp }}/swara-native-test-probe/build/Testing/Temporary/LastTest.log*
           if-no-files-found: warn
           retention-days: 7

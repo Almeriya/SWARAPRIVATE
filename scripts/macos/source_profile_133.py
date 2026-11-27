@@ -31,6 +31,8 @@ _ALLOWED_META = {
     '.github/workflows/macos-development-build.yml',
     '.github/workflows/macos-native-test-probe.yml',
     'scripts/macos/native_test_probe.py',
+    'scripts/macos/native_reference.py',
+    'scripts/macos/test_native_reference.py',
     # One-line Current wrapper rename: ProgramChange → PresetSelection after prepare.
     'Tests/Current/PresetRestoreHeadlessTestsMain.cpp',
     # macOS assertion-recovery test contract fixes (not production Source/).
@@ -219,7 +221,11 @@ def compare_source_133(source, checkout_sha, base_sha, git_tree, original_base,
             and 'restore-completion source was not redirected' in overlay,
             'Apple JUCE restore overlay must redirect the compiled .mm module wrapper')
     agents = (source / 'AGENTS.md').read_text()
-    require('SPDX-License-Identifier: GPL-3.0-or-later' in agents
+    expected_spdx = (
+        'SPDX-License-'
+        'Identifier: GPL-3.0-or-later'
+    )
+    require(expected_spdx in agents
             and 'AGENTS MUST NOT POLL OR WAIT FOR GITHUB ACTIONS' in agents,
             'Tracked AGENTS.md SPDX / no-poll contract missing')
     reuse = (source / 'REUSE.toml').read_text()
@@ -228,6 +234,24 @@ def compare_source_133(source, checkout_sha, base_sha, git_tree, original_base,
     probe = (source / 'scripts/macos/native_test_probe.py').read_text()
     require('--ctest-regex' in probe,
             'Native probe must accept registered CTest name regex')
+    require('--classic-pcm-capture' in probe
+            and 'TARGETED_NATIVE_AUDIO_CAPTURE_NOT_QUALIFIED' in probe,
+            'Native probe must capture Classic float32 without admitting goldens')
+    require('SWARAXT_CLASSIC_PCM_CAPTURE' in tests
+            and 'never admits goldens' in tests,
+            'Classic PCM capture CMake option missing')
+    require('#if defined(SWARAXT_CLASSIC_PCM_CAPTURE)' in
+            (source / 'Tests/AudioRegression/AudioRegressionTestsMain.cpp').read_text(),
+            'Classic PCM capture must remain compile-time and off by default')
+    reference = (source / 'scripts/macos/native_reference.py').read_text()
+    require("'x86_64': {}" in reference and "'arm64': {}" in reference
+            and 'TESTS = {}' in reference
+            and 'REFERENCE_REVIEW_REQUIRED' in reference,
+            'Architecture-specific audio authority must stay empty until owner admission')
+    probe_workflow = (source / '.github/workflows/macos-native-test-probe.yml').read_text()
+    require('classic_pcm_capture' in probe_workflow
+            and 'never admits goldens' in probe_workflow,
+            'Native probe workflow must expose Classic PCM capture without golden admission')
     ci_text = (source / 'scripts/macos/ci.py').read_text()
     require("'-DSWARAXT_SHARE_TEST_JUCE=' + ('OFF' if universal else 'ON')" in ci_text
             and "CMAKE_SYSTEM_NAME STREQUAL \"Linux\" OR APPLE" in
