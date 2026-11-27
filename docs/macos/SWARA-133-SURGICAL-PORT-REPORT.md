@@ -522,3 +522,21 @@ This session enables the same identical-signature sharing on Apple native config
 | PR #1 merge / macOS release | **BLOCKED** |
 
 Focused dispatch after this amendment: registered `macos-build-recovery.yml`, ARM64 Debug, CTest regex covering every `SwaraXTRestoreCompletion*` and `SwaraXTHostRestoreFault-*` name plus default executables. Results **PENDING**. Do not treat this probe as full qualification.
+
+---
+
+## Amendment — Apple overlay was not in the compiled module (`d47d1af`)
+
+Focused ARM64 Debug https://github.com/Almeriya/SWARAPRIVATE/actions/runs/46048596972 at `d47d1af`:
+
+| Suite | Result |
+| --- | --- |
+| All `SwaraXTHostRestoreFault-*` + `SwaraXTHostStateSafetyTests` | **PASS** |
+| RestoreCompletion `root` / `allocation` / `admission` | **PASS**, `escaped=0` |
+| RestoreCompletion default / `listeners` / `preempt` | **FAIL** |
+
+Exceptions were contained (`escaped=0`, was `escaped=1` at `59a6686`). Live ranged parameters and APVTS atomics still did not match complete B. `JUCE Assertion failure in juce_ValueTree.cpp:777` is `setProperty` on a null adapter tree — adapters were cleared and not fully reconnected.
+
+**Root cause:** JUCE 9.0.1 on Apple compiles `juce_audio_processors.mm` (which `#include`s the adjacent `.cpp`). The overlay only redirected the Windows `.cpp` INTERFACE_SOURCES path, so the original unpatched APVTS implementation kept running. Processor `#if SWARAXT_JUCE_RESTORE_COMPLETION` still caught the first listener throw, which is why `escaped=0` while the cohort stayed mixed.
+
+Fix: redirect the compiled `.mm` wrapper into the build-local patched module and fail closed if neither `.mm` nor `.cpp` was replaced. Hosted ARM64 Debug restore probes **PENDING**. REUSE is not a release blocker for this recovery. Full matrix **not dispatched**.
