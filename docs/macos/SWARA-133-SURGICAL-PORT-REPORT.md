@@ -411,3 +411,114 @@ Focused dispatch after this amendment: recovery workflow ARM64 Debug matrix of t
 Run https://github.com/Almeriya/SWARAPRIVATE/actions/runs/45934895475 (`865fbc6`) — **FAIL** before compile: `unreviewed repository difference: .gitignore` (policy commit). Tests **NOT_RUN**.
 
 `.gitignore` added to `_ALLOWED_META`. Re-dispatch — **PENDING**.
+
+---
+
+## Amendment — final macOS qualification recovery (`59a6686` baseline)
+
+Reviewed SHA: `59a668699824ef9e97dc7aac1a68bdd35c624a96`  
+Failed full matrix: https://github.com/Almeriya/SWARAPRIVATE/actions/runs/45985690322  
+REUSE failure: https://github.com/Almeriya/SWARAPRIVATE/actions/runs/45935057457  
+Four assertion probes (prior session): https://github.com/Almeriya/SWARAPRIVATE/actions/runs/45935058086 — **PASS** (`TARGETED_NATIVE_TEST_PASS_NOT_QUALIFIED`; not full qualification)
+
+### A. Original baseline — run `45985690322` at `59a6686`
+
+| Job / profile | Result | Classification |
+| --- | --- | --- |
+| Intel preflight | PASS | completed |
+| ARM64 preflight | PASS | completed |
+| Universal AU/VST3 compilation | PASS | completed |
+| Intel plugin host smoke | PASS | completed |
+| ARM64 plugin host smoke | PASS | completed |
+| ARM64 Debug native | FAIL | **TEST ASSERTION** — 11 CTest failures below |
+| ARM64 Release native | FAIL | **TEST ASSERTION** — same 11 |
+| ARM64 TSan native | FAIL | **TEST ASSERTION** — same 11; no TSan race listed |
+| ARM64 ASan/UBSan native | INCOMPLETE | **INTERRUPTED** — build budget exhausted; tests **NOT_RUN** |
+| Intel Debug native | INCOMPLETE | **INTERRUPTED** — tests **NOT_RUN** |
+| Intel Release native | INCOMPLETE | **INTERRUPTED** — tests **NOT_RUN** |
+| Intel ASan/UBSan native | INCOMPLETE | **INTERRUPTED** — tests **NOT_RUN** |
+| Intel TSan native | INCOMPLETE | still in progress at last inspection; **NOT** PASS or product FAIL |
+
+Held on ARM64 Debug / Release / TSan (do not reopen without new evidence):
+
+- Correctness, Dual SVF dormancy, Sequencer Workflow, Playback Regression
+- `SwaraXTCurrentPresetRestoreHeadlessTests`
+
+Failed CTest names (runtime assertions, not compiler errors):
+
+| Test | Class |
+| --- | --- |
+| `SwaraXTAudioParityTests` | AUDIO REFERENCE — Classic F/G/I hashes; authority **REVIEW_REQUIRED** |
+| `SwaraXTRestoreCompletionTests` | HOST / OVERLAY |
+| `SwaraXTRestoreCompletion-listeners` | HOST / OVERLAY |
+| `SwaraXTRestoreCompletion-preempt` | HOST / OVERLAY |
+| `SwaraXTRestoreCompletion-root` | HOST / OVERLAY |
+| `SwaraXTRestoreCompletion-allocation` | HOST / OVERLAY |
+| `SwaraXTRestoreCompletion-admission` | HOST / OVERLAY |
+| `SwaraXTHostRestoreFault-parameter` | HOST / OVERLAY |
+| `SwaraXTHostRestoreFault-sequence` | HOST / OVERLAY |
+| `SwaraXTHostRestoreFault-post` | HOST / OVERLAY |
+| `SwaraXTHostRestoreFault-metadata` | HOST / OVERLAY |
+
+Interrupted profiles are **not** product regressions and are **not** PASS.
+
+### B. Restore-completion exception safety
+
+**Reproduced defect (ARM64 logs at `59a6686`):** injected exceptions escaped processor restoration and left a mixed cohort.
+
+`fault-parameter`: `injected=1 escaped=1 changedParameters=5 completeA=0 completeB=0 sequenceA=1 tuningA=1`  
+`fault-sequence`: `injected=1 escaped=1 changedParameters=8 completeA=0 completeB=0 sequenceA=0 tuningA=1`
+
+Also observed: listener exceptions escaping, partial APVTS adapter updates, atomic/parameter disagreement, incorrect saved state, sequence/tuning/metadata mismatch, automation connections failing after exceptional restore, failed notification-completion semantics.
+
+**Root cause:** `cmake/Dependencies.cmake` included `Juce901RestoreCompletion.cmake` only on `WIN32`. Apple never defined `SWARAXT_JUCE_RESTORE_COMPLETION`. Processor `restoreState()` therefore used the `#else` path: `apvts_.replaceState(tree)` with no adapter-completion catch, and `setStateInformation` reported `RestoreResult::incomplete` while rethrowing. Public 1.3.3 is also Windows-only for this overlay; the Mac failure is the missing Apple-compatible enablement of the already-verified 9.0.1 boundary.
+
+**JUCE/APVTS compatibility decision:** reuse the existing CRLF overlay. Pinned JUCE 9.0.1 `e18f7f506c0b96f2c738a0bcd7fe6467a5005ad8` stores APVTS sources as CRLF. GitHub-hosted bytes match the Windows input hashes already enforced by `cmake/Juce901RestoreCompletion.cmake`. `git apply --binary` of `cmake/Juce901RestoreCompletion.patch` produces the same output hashes. PNG `longjmp` overlay remains Windows-only.
+
+| Item | SHA-256 |
+| --- | --- |
+| Patch file | `f4bc7a6fc97d61c6d825860e5db584c3f067c4ac7668adc8462948b8808f4c91` |
+| Input `juce_AudioProcessorValueTreeState.cpp` | `94760f6858acf7fcf52915504cc24702cdea9c031d9a9593919de108884a1ad6` |
+| Input `juce_AudioProcessorValueTreeState.h` | `39bc0e4fdb9cff4feb34cf0d3013ec4242ca8e6524a40b508509db03afb9a1e0` |
+| Patched cpp | `c235feadf7d787ed3b448796247085831b3099396a773a95112bae8c51c8b8ff` |
+| Patched header | `092e7b5422891a08c934dfe6d546fd08e077356f559cdfefbfa07ed0679aaa69` |
+
+Implementation: `elseif(WIN32 OR APPLE)` include of the build-local generated module. No JUCE fork. No Source/ DSP change. Processor already contains the `#if defined(SWARAXT_JUCE_RESTORE_COMPLETION)` transaction (`replaceState` catch when `apvts_.state == tree`, `notificationFailed` → `RestoreResult::incomplete`, not a fabricated `success`). Tests were not weakened.
+
+**Before:** `injected=1 escaped=1` with partial parameters/sequence/tuning.  
+**After:** hosted ARM64 Debug restore probes **PENDING** (this session). Negative controls `fault-decode`, `fault-tuning`, `fault-snapshot` remain registered and are included in the HostRestoreFault regex.
+
+### C. Classic audio parity F / G / I
+
+Goldens in `Tests/Parity/CurrentAudioGoldens.h` were **not** regenerated. `native_reference.py` still fail-closes with **REVIEW_REQUIRED**.
+
+| Case | Setup | Expected hash | Observed ARM64 (`59a6686`) |
+| --- | --- | --- | --- |
+| F low resonance | saw, cutoff 1200 Hz, res 0.25, note 48 | `0099139bef0f1690` | `7cad43fd9155360d` |
+| G high resonance | saw, cutoff 900 Hz, res 0.82, note 48 | `1ac4a6fabf9a3da5` | `b583834c32a65866` |
+| I normal envelope | saw+saw mix 32, cutoff 650 Hz, res 0.35, note 36 | `8bed59407b8e5da6` | `ac2c238b499d0be4` |
+
+A/B/C/D/J passed on 1.3.3 ARM64. First-divergent-sample, peak/RMS error vs independent PCM, and Intel-vs-ARM64 PCM comparison: **NOT_RUN** this session (no local compile; audio probe not dispatched). A changed hash is not proof of an incorrect sound. Owner must admit any architecture-specific reference. Independent authority remains **REVIEW_REQUIRED**. Full qualification cannot be attempted until that decision exists.
+
+### D. CI runtime
+
+Original native `SwaraXTQualificationTests` graph is ~5,600 Ninja steps under sanitizers (`cmake --build --parallel 2`, 10800s). `swaraxt_add_plugin_console_test()` copies `SWARAXT_ALL_PLUGIN_SOURCES` into each executable. Linux already grouped identical compile definitions into OBJECT libraries (`SWARAXT_SHARE_TEST_JUCE` / `SWARAXT_SHARE_TEST_PRODUCTION`). Apple CI previously forced both **OFF**.
+
+This session enables the same identical-signature sharing on Apple native configures only (universal product builds keep tests off, so sharing stays OFF). Audio/timing mode wrappers keep per-target `SWARAXT_AUDIO_TEST_MODE` / timing defines off production objects. Sanitizer objects are never reused across profiles: each job is its own build tree. Full-matrix shard coverage is **not** implemented yet; sharing is the first bounded compile-graph reduction. Complete CTest inventory is unchanged.
+
+### E. REUSE
+
+`AGENTS.md`, `.cursor/rules/ci-no-polling.mdc`, and `.cursor/rules/macos-engineering.mdc` now carry GPL-3.0-or-later SPDX comments. `REUSE.toml` annotates `AGENTS.md` and `.cursor/**`. Files remain tracked; `alwaysApply: true` retained; **AGENTS MUST NOT POLL OR WAIT FOR GITHUB ACTIONS** is explicit. Hosted REUSE on this SHA: **PENDING**. Static `reuse lint` was run locally where the tool is available; product compilation was not.
+
+### F. Qualification status
+
+| Item | State |
+| --- | --- |
+| Four assertion contracts on `59a6686` ARM64 Debug/Release/TSan | PASS (completed evidence) |
+| Restore overlay + REUSE + Apple object sharing | `01bd346ea23af2f7282e049e496c19f00223f010`; hosted result **PENDING** |
+| Classic F/G/I audio authority | **REVIEW_REQUIRED** |
+| Intel / ASan native completeness | **INCOMPLETE** |
+| Full eight-profile matrix | **NOT DISPATCHED** (restore blockers not yet proven by completed focused CI) |
+| PR #1 merge / macOS release | **BLOCKED** |
+
+Focused dispatch after this amendment: registered `macos-build-recovery.yml`, ARM64 Debug, CTest regex covering every `SwaraXTRestoreCompletion*` and `SwaraXTHostRestoreFault-*` name plus default executables. Results **PENDING**. Do not treat this probe as full qualification.
