@@ -329,7 +329,22 @@ ARM64 Debug/Release/TSan shared failing CTest names (not compile):
 | `SwaraXTWorkflowTests` | **ASSERTION** | `locked pattern/extended arp preserved` |
 | `SwaraXTPlaybackRegressionTests` | **ASSERTION** | `old retained index remaps by saved name` |
 
-No goldens regenerated. No production DSP changed. Next: focused hosted single-target probes for the four non-audio/non-overlay assertions (no concurrent full matrix).
+No goldens regenerated. No production DSP changed for these.
+
+### Focused hosted diagnostics (`9eef8d3`, docs/probe-wiring only; same harness fix)
+
+Sequential ARM64 Debug single-target probes: https://github.com/Almeriya/SWARAPRIVATE/actions/runs/45928712715
+
+| Target | Compile | CTest | Class |
+| --- | --- | --- | --- |
+| `SwaraXTCorrectnessTests` | PASS | FAIL | ASSERTION — LFO2 board CV once |
+| `SwaraXTDualSvfDormancyTests` | PASS | FAIL | ASSERTION — FIFO indexed stream (496 reported) |
+| `SwaraXTWorkflowTests` | PASS | FAIL | ASSERTION — locked pattern/extended arp |
+| `SwaraXTPlaybackRegressionTests` | PASS | FAIL | ASSERTION — old retained index remaps (4) |
+
+Universal `build` on `9eef8d3`: https://github.com/Almeriya/SWARAPRIVATE/actions/runs/45928704349 — **PASS** (docs/workflow only; do not treat as qualifying product delta vs `f2c9433` natives)
+
+Do not redispatch a concurrent full matrix until surgical root causes are identified for the non-audio assertions. AudioParity remains **REVIEW_REQUIRED**. Restore-completion remains blocked by Apple overlay off.
 
 ### Recovery tooling
 
