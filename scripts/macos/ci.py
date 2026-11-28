@@ -171,6 +171,17 @@ class Campaign(PublicInfrastructure):
         for setting in ['SWARA_BUILD_STANDALONE:BOOL=OFF', 'SWARA_BUILD_SKIN_EDITOR:BOOL=OFF']:
             require(setting in cache, 'Qualification invariant: setting in cache')
         if not universal:
+            require('SWARAXT_SHARE_TEST_JUCE:BOOL=ON' in cache
+                    and 'SWARAXT_SHARE_TEST_PRODUCTION:BOOL=ON' in cache,
+                    'Apple native tests must share identically configured objects')
+            self.report['share_test_juce'] = True
+            self.report['share_test_production'] = True
+        else:
+            require('SWARAXT_SHARE_TEST_JUCE:BOOL=OFF' in cache
+                    and 'SWARAXT_SHARE_TEST_PRODUCTION:BOOL=OFF' in cache,
+                    'Universal product builds must not share test objects')
+
+        if not universal:
             shutil.copy2(build / 'compile_commands.json', self.root / 'compile-commands.json')
         return build, config
 
@@ -321,6 +332,12 @@ class Campaign(PublicInfrastructure):
 
     def regressions(self,build,juce,config):
         """Build and audit the full inventory before running CTest."""
+        graph = subprocess.check_output(
+            ['ninja', '-C', str(build), '-t', 'commands', 'SwaraXTQualificationTests'],
+            text=True, timeout=120)
+        self.report['qualification_ninja_command_count'] = len(
+            [line for line in graph.splitlines() if line.strip()])
+        self.save()
         self.run('build-native-tests', ['cmake', '--build', build, '--target', 'SwaraXTQualificationTests',
                  '--parallel', '2', '--', '-k', '0'], timeout=10800)
         commands = json.loads((build / 'compile_commands.json').read_text())

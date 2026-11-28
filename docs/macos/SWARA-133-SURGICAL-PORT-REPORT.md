@@ -805,3 +805,120 @@ Host restore (`^(SwaraXTHostStateSafetyTests|SwaraXTHostRestoreFault-)`) 8/8 **P
 Intel Release restore and sanitizer restore remain **NOT_RUN**. Independent audio admission **REVIEW_REQUIRED**. Full matrix **not dispatched**. PR #1 unmerged.
 
 Intel x86_64 Release restore-completion dispatch: **PENDING**.
+
+---
+
+## Amendment — Intel Release restore PASS; scoped Classic authority; sanitizer restore dispatched
+
+Source before this amendment: `f5ef9ba7f94b588638dcfc6f9caa77996af6a421`.  
+This amendment records completed Intel Release restore evidence, encodes owner Classic approval without unlocking the full native gate, and dispatches four focused sanitizer restore probes. Full eight-profile matrix **not dispatched**. PR #1 unmerged.
+
+### Intel Release restore — **PASS** (targeted, not full qualification)
+
+| Item | Value |
+| --- | --- |
+| Run | https://github.com/Almeriya/SWARAPRIVATE/actions/runs/46107289590 |
+| Decision | `TARGETED_NATIVE_TEST_PASS_NOT_QUALIFIED` |
+| Source SHA | `f5ef9ba7f94b588638dcfc6f9caa77996af6a421` |
+| Arch / profile | x86_64 Release, `macos-15-intel`, macOS 15.7.9 |
+| Toolchain | Xcode 16.4 (16F6), Apple Clang 17.0.0, JUCE `e18f7f506c0b96f2c738a0bcd7fe6467a5005ad8` |
+| Configure | `-DSWARAXT_SHARE_TEST_JUCE=ON` `-DSWARAXT_SHARE_TEST_PRODUCTION=ON` |
+| Sharing | already enabled for Apple native; this job built one executable per matrix job, so production-object grouping did not apply |
+| Full qualification | **NOT_ESTABLISHED** |
+
+`SwaraXTRestoreCompletionTests` (`^SwaraXTRestoreCompletion`) 6/6 **PASS**, CTest exit 0, ~194 s compile at `--parallel 2`:
+
+1. `SwaraXTRestoreCompletionTests` (default)
+2. `SwaraXTRestoreCompletion-listeners`
+3. `SwaraXTRestoreCompletion-preempt`
+4. `SwaraXTRestoreCompletion-root`
+5. `SwaraXTRestoreCompletion-allocation`
+6. `SwaraXTRestoreCompletion-admission`
+
+`SwaraXTHostStateSafetyTests` (`^(SwaraXTHostStateSafetyTests|SwaraXTHostRestoreFault-)`) 8/8 **PASS**, CTest exit 0, ~189 s compile:
+
+1. `SwaraXTHostStateSafetyTests` (default)
+2. `SwaraXTHostRestoreFault-decode`
+3. `SwaraXTHostRestoreFault-tuning`
+4. `SwaraXTHostRestoreFault-snapshot`
+5. `SwaraXTHostRestoreFault-parameter`
+6. `SwaraXTHostRestoreFault-sequence`
+7. `SwaraXTHostRestoreFault-post`
+8. `SwaraXTHostRestoreFault-metadata`
+
+Peak compiler RSS on these uninstrumented Intel Release jobs was about 600–630 MiB at `-j2`; CMake configure peaked near 1.1 GiB session RSS. That is a single-target cost, not the full native inventory.
+
+### Targeted Debug/Release restore matrix (not full qualification)
+
+| Architecture | Debug | Release |
+| --- | --- | --- |
+| ARM64 | PASS ([46057810771](https://github.com/Almeriya/SWARAPRIVATE/actions/runs/46057810771)) | PASS ([46106349742](https://github.com/Almeriya/SWARAPRIVATE/actions/runs/46106349742)) |
+| Intel x86_64 | PASS ([46059870502](https://github.com/Almeriya/SWARAPRIVATE/actions/runs/46059870502)) | PASS ([46107289590](https://github.com/Almeriya/SWARAPRIVATE/actions/runs/46107289590)) |
+
+These are focused restore-completion probes. They are **not** eight-profile native qualification.
+
+### Owner Classic audio authority — APPROVED, narrowly
+
+Owner approved the eight official public SWARA XT 1.3.3 Classic Q23 goldens for Intel and ARM64 **Debug and Release only**. Hashes were **not** regenerated. Header remains public 1.3.3 blob `6ddd3aa0b143ab65acf7e8a962d798015fd1dcc0`.
+
+| Case | Official 1.3.3 Q23 |
+| --- | --- |
+| Test A basic saw | `e49a2f5d8a7090f9` |
+| Test B basic square | `608f87853120af8e` |
+| Test C two oscillators | `2e5f9d73aeaa1820` |
+| Test F filter low resonance | `7cad43fd9155360d` |
+| Test G filter high resonance | `b583834c32a65866` |
+| Test I normal envelope | `ac2c238b499d0be4` |
+| Test D noise only | `c473d3385b5767ba` |
+| Test J silence | `81296f5b21ed7843` |
+
+Provenance: public 1.3.3 `6ea598e47fb0347d23ffa538a64b02318187a7ed`; Intel PCM [46062372695](https://github.com/Almeriya/SWARAPRIVATE/actions/runs/46062372695); ARM64 PCM [46064526245](https://github.com/Almeriya/SWARAPRIVATE/actions/runs/46064526245) (bitwise identical float32); uninstrumented Debug AudioParity [46100887687](https://github.com/Almeriya/SWARAPRIVATE/actions/runs/46100887687) / [46100889871](https://github.com/Almeriya/SWARAPRIVATE/actions/runs/46100889871).
+
+`scripts/macos/native_reference.py` now records that approval as `CLASSIC_OWNER_APPROVAL` / `classic_owner_status()`. `APPROVED_REFERENCES` maps stay `{}`. `TESTS = {}`. `require_approved_authority()` still raises `BLOCKED` for every architecture/profile, including Debug/Release, and for `mode=full` `(None, None, None)`. Sanitizer Classic status remains `REVIEW_REQUIRED`. Filling the empty maps would still be insufficient for self-approval.
+
+Still required before full native-reference admission:
+
+- Release-profile `SwaraXTAudioParityTests` execution (**NOT_RUN**)
+- Dual SVF / Host SRC / integrated FX / other native-reference families
+- Sanitizer-profile Classic evidence
+- Complete eight-profile native qualification
+
+### Native build-graph audit (no speculative rewrite)
+
+Apple native configure already sets `SWARAXT_SHARE_TEST_JUCE=ON` and `SWARAXT_SHARE_TEST_PRODUCTION=ON` (universal product builds keep them OFF). Intel Release restore evidence confirmed those cache entries. `swaraxt_add_plugin_console_test` still copies `SWARAXT_ALL_PLUGIN_SOURCES` onto every console executable; `Tests/Qualification.cmake` then groups production objects only when compile definitions, options, includes, and link sets are identical. RestoreCompletion / HostStateSafety / RestoreTransaction share the same three test macros and can share objects **when built together**. Focused restore jobs compile one executable per runner, so sharing does not reduce those probes.
+
+Historical full-native timeouts (~5600 Ninja steps, 10800 s `--parallel 2`) are still unexplained by a post-sharing hosted count. Unique per-test definitions prevent grouping most executables; sanitizers multiply compile cost; `-j2` is already memory-limited (configure ~1.1 GiB, one Release restore compiler ~0.6 GiB). `compiler_cache.py` is JUCE-preprocessor-only and is used by diagnostics/recovery probes, not the production `ci.py` native path. Intel TSan shards already exist for the diagnostics workflow and were not generalized.
+
+Applied, independently justified CI recovery only:
+
+- Fail-closed cache check that Apple native keeps sharing ON (universal keeps it OFF).
+- Restore probes fail closed if any of the 14 registered CTest names is missing; extra matching names still run.
+- Hosted `ninja -t commands` counts recorded per restore target and for `SwaraXTQualificationTests` before the 10800 s build. Coverage, sanitizer flags, negative controls, and timeouts are unchanged.
+
+Not done: timeout increase, sanitizer disable, object reuse across arch/profile/sanitizer, eight-profile shards, or a build-system rewrite. Next dedicated redesign, after a hosted post-sharing command count: fail-closed shards whose union equals the frozen CTest inventory, same SHA/toolchain/sanitizer, merged evidence.
+
+### Sanitizer restore qualification — dispatched, **PENDING**
+
+Workflow `.github/workflows/macos-build-recovery.yml`, suite `restore-completion`. Each dispatch is the existing two-job matrix (`SwaraXTRestoreCompletionTests` + `SwaraXTHostStateSafetyTests`). ASan/UBSan keeps `-fsanitize=address,undefined,vptr`, `-fno-sanitize-recover=all`, halt_on_error. TSan keeps `-fsanitize=thread` and halt_on_error. Negative controls remain required. Results **PENDING**.
+
+| Architecture | Profile | Coverage | Result |
+| --- | --- | --- | --- |
+| ARM64 | asan-ubsan | 6 RestoreCompletion + 8 HostRestoreFault | **PENDING** |
+| ARM64 | tsan | same 14 CTest names | **PENDING** |
+| Intel x86_64 | asan-ubsan | same 14 CTest names | **PENDING** |
+| Intel x86_64 | tsan | same 14 CTest names | **PENDING** |
+
+Stage 4 full matrix **not dispatched**.
+
+### Source-profile implications
+
+Five Apple `Source/` exceptions are unchanged. Classic owner approval is not a sixth exception and is not full native-reference admission. `validate_tree` still returns `native_audio_reference: REVIEW_REQUIRED`. Goldens were not rewritten in this amendment.
+
+### Remaining full native qualification blockers
+
+1. Four sanitizer restore configurations — **PENDING** this dispatch.
+2. Release Classic AudioParity — **NOT_RUN**.
+3. Independent full-family native-reference admission — **REVIEW_REQUIRED**.
+4. Hosted post-sharing `SwaraXTQualificationTests` Ninja command count — **NOT_RUN**.
+5. Complete eight-profile native matrix — **not dispatched**.
+6. PR #1 unmerged. No release. No notarization.

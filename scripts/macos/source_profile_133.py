@@ -239,6 +239,12 @@ def compare_source_133(source, checkout_sha, base_sha, git_tree, original_base,
     require('--classic-pcm-capture' in probe
             and 'TARGETED_NATIVE_AUDIO_CAPTURE_NOT_QUALIFIED' in probe,
             'Native probe must capture Classic float32 without admitting goldens')
+    require('RESTORE_COMPLETION_CTEST' in probe
+            and 'HOST_RESTORE_CTEST' in probe
+            and 'SwaraXTRestoreCompletion-admission' in probe
+            and 'SwaraXTHostRestoreFault-metadata' in probe
+            and 'ninja_command_count' in probe,
+            'Restore probes must keep the full registered CTest inventory')
     require('SWARAXT_CLASSIC_PCM_CAPTURE' in tests
             and 'never admits goldens' in tests,
             'Classic PCM capture CMake option missing')
@@ -249,7 +255,12 @@ def compare_source_133(source, checkout_sha, base_sha, git_tree, original_base,
     require("'x86_64': {}" in reference and "'arm64': {}" in reference
             and 'TESTS = {}' in reference
             and 'REFERENCE_REVIEW_REQUIRED' in reference,
-            'Architecture-specific audio authority must stay empty until owner admission')
+            'Full-family Mac audio authority tables must stay empty')
+    require('CLASSIC_OWNER_APPROVAL' in reference
+            and '0x7cad43fd9155360d' in reference
+            and "CLASSIC_PROFILES = ('Debug', 'Release')" in reference
+            and "'asan-ubsan'" not in reference.split('CLASSIC_PROFILES')[1].split('\n')[0],
+            'Classic owner approval must stay Debug/Release public 1.3.3 only')
     probe_workflow = (source / '.github/workflows/macos-native-test-probe.yml').read_text()
     require('classic_pcm_capture' in probe_workflow
             and 'never admits goldens' in probe_workflow,
@@ -269,6 +280,7 @@ def compare_source_133(source, checkout_sha, base_sha, git_tree, original_base,
             'Classic F/G/I must match official public 1.3.3, not Phase3')
     ci_text = (source / 'scripts/macos/ci.py').read_text()
     require("'-DSWARAXT_SHARE_TEST_JUCE=' + ('OFF' if universal else 'ON')" in ci_text
+            and "SWARAXT_SHARE_TEST_JUCE:BOOL=ON" in ci_text
             and "CMAKE_SYSTEM_NAME STREQUAL \"Linux\" OR APPLE" in
             (source / 'Tests/Qualification.cmake').read_text(),
             'Apple native tests must share identically configured objects')

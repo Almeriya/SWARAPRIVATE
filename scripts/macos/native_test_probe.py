@@ -14,6 +14,31 @@ import sys
 from ci import Campaign, SOURCE
 from policy import require, hosted_root, revision
 
+# Fail closed if a restore probe silently drops a registered CTest name.
+# Extra names that match the probe regex still run.
+RESTORE_COMPLETION_CTEST = (
+    'SwaraXTRestoreCompletionTests',
+    'SwaraXTRestoreCompletion-listeners',
+    'SwaraXTRestoreCompletion-preempt',
+    'SwaraXTRestoreCompletion-root',
+    'SwaraXTRestoreCompletion-allocation',
+    'SwaraXTRestoreCompletion-admission',
+)
+HOST_RESTORE_CTEST = (
+    'SwaraXTHostStateSafetyTests',
+    'SwaraXTHostRestoreFault-decode',
+    'SwaraXTHostRestoreFault-tuning',
+    'SwaraXTHostRestoreFault-snapshot',
+    'SwaraXTHostRestoreFault-parameter',
+    'SwaraXTHostRestoreFault-sequence',
+    'SwaraXTHostRestoreFault-post',
+    'SwaraXTHostRestoreFault-metadata',
+)
+EXPECTED_RESTORE_CTEST = {
+    'SwaraXTRestoreCompletionTests': RESTORE_COMPLETION_CTEST,
+    'SwaraXTHostStateSafetyTests': HOST_RESTORE_CTEST,
+}
+
 
 class NativeTestProbe(Campaign):
     def execute(self):
@@ -31,6 +56,15 @@ class NativeTestProbe(Campaign):
             require(target in names, 'Requested CTest name is not registered: ' + target)
             matched = sorted(name for name in names if re.search(regex, name))
             require(matched, 'CTest regex matched no registered tests: ' + regex)
+            expected = EXPECTED_RESTORE_CTEST.get(target)
+            if expected:
+                missing = [name for name in expected if name not in matched]
+                require(not missing, 'Restore probe omitted registered CTest names: ' + ', '.join(missing))
+            graph = subprocess.check_output(
+                ['ninja', '-C', str(build), '-t', 'commands', target],
+                text=True, timeout=120)
+            ninja_command_count = len([line for line in graph.splitlines() if line.strip()])
+            require(ninja_command_count > 0, 'Ninja command graph for ' + target + ' is empty')
             if self.args.classic_pcm_capture:
                 require(target == 'SwaraXTAudioParityTests',
                         'Classic PCM capture is limited to SwaraXTAudioParityTests')
@@ -76,6 +110,7 @@ class NativeTestProbe(Campaign):
                 'target': target,
                 'ctest_regex': regex,
                 'matched_tests': matched,
+                'ninja_command_count': ninja_command_count,
                 'architecture': self.args.arch,
                 'profile': self.args.profile,
                 'config': config,
