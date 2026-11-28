@@ -33,6 +33,8 @@ _ALLOWED_META = {
     'scripts/macos/native_test_probe.py',
     'scripts/macos/native_reference.py',
     'scripts/macos/test_native_reference.py',
+    'scripts/macos/test_gate.py',
+    'docs/macos/NATIVE-REFERENCE-OWNER-DECISION.md',
     # One-line Current wrapper rename: ProgramChange → PresetSelection after prepare.
     'Tests/Current/PresetRestoreHeadlessTestsMain.cpp',
     # macOS assertion-recovery test contract fixes (not production Source/).
@@ -254,13 +256,16 @@ def compare_source_133(source, checkout_sha, base_sha, git_tree, original_base,
     reference = (source / 'scripts/macos/native_reference.py').read_text()
     require("'x86_64': {}" in reference and "'arm64': {}" in reference
             and 'TESTS = {}' in reference
-            and 'REFERENCE_REVIEW_REQUIRED' in reference,
-            'Full-family Mac audio authority tables must stay empty')
+            and 'verify_independent_references' in reference
+            and 'INDEPENDENT_REFERENCES_VERIFIED' in reference
+            and 'candidate_generated' in reference,
+            'Mac audio authority must verify independent references without candidate self-admission')
     require('CLASSIC_OWNER_APPROVAL' in reference
             and '0x7cad43fd9155360d' in reference
             and "CLASSIC_PROFILES = ('Debug', 'Release')" in reference
-            and "'asan-ubsan'" not in reference.split('CLASSIC_PROFILES')[1].split('\n')[0],
-            'Classic owner approval must stay Debug/Release public 1.3.3 only')
+            and "'asan-ubsan'" not in reference.split('CLASSIC_PROFILES')[1].split('\n')[0]
+            and 'EVIDENCE_BASED_GATE' in reference,
+            'Classic owner approval must stay Debug/Release public 1.3.3 with evidence-based full gate')
     probe_workflow = (source / '.github/workflows/macos-native-test-probe.yml').read_text()
     require('classic_pcm_capture' in probe_workflow
             and 'never admits goldens' in probe_workflow,

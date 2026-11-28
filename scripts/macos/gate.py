@@ -82,7 +82,9 @@ def evaluate(root, args):
             require(all(data[k] == v for k, v in counts.items()), 'CTest report counts disagree')
             require(commands.get('ctest') == 0 and commands.get('build-native-tests') == 0, 'Missing native regression execution')
             from native_reference import require_approved_authority
-            require_approved_authority(None, data['architecture'], data['profile'])
+            provenance = data.get('audio_reference_provenance')
+            require(isinstance(provenance, dict), 'Missing audio-reference provenance evidence')
+            require_approved_authority(None, data['architecture'], data['profile'], evidence=provenance)
             if data['profile'] in ('asan-ubsan', 'tsan'):
                 require(data['sanitizer_negative_controls'] == 'PASS', 'Sanitizer sensitivity controls missing')
             if data['profile'] == 'Release':
@@ -114,8 +116,14 @@ def evaluate(root, args):
                 require(data['candidate_archive_sha256'] == universal['candidate_archive_sha256'] and
                         data['candidate_manifest_sha256'] == universal['candidate_manifest_sha256'], 'Different candidates across native jobs')
     if args.mode == 'full':
-        from native_reference import require_approved_authority
-        require_approved_authority(None, None, None)
+        from native_reference import CLASSIC_HEADER_BLOB, require_approved_authority
+        provenances = [data['audio_reference_provenance'] for data in found.values() if data['stage'] == 'tests']
+        require(len(provenances) == 8, 'Incomplete native matrix reference provenance')
+        require(len({json.dumps(item, sort_keys=True) for item in provenances}) == 1,
+                'Native profiles disagree on independent reference provenance')
+        require_approved_authority(None, None, None, evidence=provenances[0])
+        require(provenances[0]['classic_header_blob'] == CLASSIC_HEADER_BLOB,
+                'Full gate Classic header provenance mismatch')
     decision = {'preflight': 'PREFLIGHT_PASS', 'build': 'BUILD_PASS_UNQUALIFIED',
                 'smoke': 'SMOKE_PASS_NOT_FULLY_QUALIFIED', 'full': 'FULL_NATIVE_QUALIFICATION_PASS'}[args.mode]
     output = {'decision': decision, 'source_sha': args.source_sha, 'base_source_sha': args.base_source_sha,

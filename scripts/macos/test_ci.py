@@ -216,6 +216,8 @@ def load_tests(loader, tests, pattern):
     import test_policy
     import test_native_reference
     tests.addTests(loader.loadTestsFromModule(test_native_reference))
+    import test_gate
+    tests.addTests(loader.loadTestsFromModule(test_gate))
     tests.addTests(loader.loadTestsFromModule(test_policy))
     return tests
 

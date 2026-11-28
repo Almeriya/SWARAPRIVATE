@@ -263,7 +263,7 @@
     "docs/macos/QUALIFICATION.md": "6349b8bbc904e33db4af872b41d3dd52f520fd81",
     "packaging/SOURCE.txt": "47f9815b7bd2b78917d009924236baf755761e43",
     ".github/workflows/macos-qualification.yml": "9a1e60734513222962643fcf619eefc58cb9a754",
-    "scripts/macos/test_ci.py": "5227f12e773565ee8f9109275088dcb30551c5e2",
+    "scripts/macos/test_ci.py": "5b831ec67fb830c8401dd787a20f6e133b569923",
     "scripts/macos/package_release_candidate.py": "d76540f6a7c98b84f6eb274f4e76455758095605",
     "scripts/macos/test_package_release_candidate.py": "615b0fefcc208aa70e6a87bf8b1b51b6e7370abc",
     "packaging/macos/README.txt": "17bf3f17db5342822399219cdb0648858551ab75",
@@ -273,6 +273,7 @@
   "allowed_mac_docs": [
     "docs/CUTOFF_FINE_PATH.md",
     "docs/macos/SWARA-133-SOURCE-INVENTORY.md",
-    "docs/macos/SWARA-133-SURGICAL-PORT-REPORT.md"
+    "docs/macos/SWARA-133-SURGICAL-PORT-REPORT.md",
+    "docs/macos/NATIVE-REFERENCE-OWNER-DECISION.md"
   ]
 }

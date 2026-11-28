@@ -3,44 +3,38 @@ SPDX-FileCopyrightText: 2026 MontroneDSP
 SPDX-License-Identifier: GPL-3.0-or-later
 -->
 
-# Native audio-reference owner decision (1.3.3 macOS)
+# Native audio-reference policy (1.3.3 macOS)
 
-`mode=full` remains blocked until the owner explicitly admits the complete applicable
-reference set. Candidates never self-approve. Hashes must not be regenerated from
-macOS candidate output.
+Owner authorization: replace the unconditional native-reference veto with an
+evidence-based gate. Candidates never admit their own hashes.
 
-## Already approved (narrow)
+## Rule
 
-| Family | Scope | Status |
+**Passing CTest against an immutable, independently established reference is
+valid qualification evidence. Passing against a candidate-generated or
+substituted reference is not.**
+
+`require_approved_authority` verifies independent reference provenance
+(`CurrentAudioGoldens.h` public 1.3.3 blob, protected Dual SVF selectors) and
+rejects unknown architecture/profile, missing evidence, regenerated goldens,
+and unapproved substitutions. It no longer raises solely because
+`APPROVED_REFERENCES` is empty.
+
+## Family audit
+
+| Family | Classification | Authority |
 | --- | --- | --- |
-| Classic Q23 (8 public 1.3.3 cases) | Intel + ARM64, Debug + Release only | **APPROVED** (`CLASSIC_OWNER_APPROVAL`) |
+| Classic Q23 (8) | `REFERENCE_VERIFIED` | Public 1.3.3 header blob `6ddd3aa0…`; owner-approved Debug/Release; same header for sanitizer profiles |
+| Integrated FX | `REFERENCE_VERIFIED` | Same protected `CurrentAudioGoldens.h` `kIntegrated` table |
+| Dual SVF section-2 | `REFERENCE_VERIFIED` | Protected Mac selector blob `59a37d98…` → `DualSvfCurrentLinuxGoldens.h` |
+| Dual SVF integration | `REFERENCE_VERIFIED` | Protected Mac audit blob `a9a4cab9…` |
+| Host SRC | `REFERENCE_VERIFIED` | `ExactParityGoldens.h` `kSrc` independent table |
 
-Not covered by that approval: Classic ASan/UBSan or TSan; Dual SVF; Host SRC;
-integrated FX; any other native floating-point family; full-gate
-`require_approved_authority(None, None, None)`.
+Any real hash mismatch fails CTest. That is a product/test failure, not a
+policy deadlock.
 
-## Still required before green `mode=full`
+## Still fail-closed
 
-For each remaining family below, owner must approve or reject with architecture,
-profile, source SHA, toolchain, and independent baseline identified.
-
-| Family | Independent baseline candidates | Mac evidence status | Decision |
-| --- | --- | --- | --- |
-| Classic sanitizer profiles | Public 1.3.3 Classic Q23 | Not separately approved | `REVIEW_REQUIRED` |
-| Dual SVF | Public / Linux-Windows tables; historical 1.3.1 Mac selectors | Historical selector/architecture splits; do not rewrite FAIL→PASS | `REVIEW_REQUIRED` |
-| Host SRC | Public / Phase3 / historical Mac captures | Historical Intel/ARM observations exist; not current admission | `REVIEW_REQUIRED` |
-| Integrated FX | Public / Phase3 tables | Historical ARM observations; Intel often matched tables historically | `REVIEW_REQUIRED` |
-| Other native FP references | Existing `Tests/References/` and protected Mac headers | Fail-closed until listed | `REVIEW_REQUIRED` |
-
-## Gate behavior (unchanged until approval)
-
-- `APPROVED_REFERENCES` maps stay empty.
-- `TESTS` stays empty.
-- `require_approved_authority(arch, profile)` raises `BLOCKED`.
-- Full gate `require_approved_authority(None, None, None)` raises `BLOCKED`.
-
-## Owner action
-
-Approve or reject the complete remaining set in one decision. After explicit approval,
-encode only that set in a fail-closed admission policy with mutation tests. Unknown
-architecture, profile, SHA, or unapproved family must still fail.
+Wrong SHA, missing/skipped CTest, failed audio hash, missing sanitizer negative
+controls, incomplete matrix, missing AU/VST3 candidate, mismatched candidate
+hashes, altered reference provenance.

@@ -37,6 +37,8 @@ class SourceProfile133Tests(unittest.TestCase):
                   'scripts/macos/native_test_probe.py',
                   'scripts/macos/native_reference.py',
                   'scripts/macos/test_native_reference.py',
+                  'scripts/macos/test_gate.py',
+                  'docs/macos/NATIVE-REFERENCE-OWNER-DECISION.md',
                   'Tests/Current/PresetRestoreHeadlessTestsMain.cpp',
                   'Tests/Correctness/CorrectnessTestsMain.cpp',
                   'Tests/Dormancy/DualSvfDormancyTestsMain.cpp',

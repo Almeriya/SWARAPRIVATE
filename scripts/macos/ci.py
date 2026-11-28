@@ -198,8 +198,14 @@ class Campaign(PublicInfrastructure):
         return build, config
 
     def native_reference(self, juce, config):
-        from native_reference import require_approved_authority
-        return require_approved_authority(SOURCE, self.args.arch, self.args.profile)
+        from native_reference import require_approved_authority, verify_independent_references
+        provenance = verify_independent_references(SOURCE)
+        status = require_approved_authority(
+            SOURCE, self.args.arch, self.args.profile, evidence=provenance)
+        self.report['audio_reference_provenance'] = provenance
+        self.report['audio_reference_status'] = status
+        self.save()
+        return status
 
     def controls(self, flags):
         samples = {'asan-ubsan': [
