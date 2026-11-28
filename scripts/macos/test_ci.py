@@ -8,7 +8,44 @@ from types import SimpleNamespace
 import unittest
 from unittest.mock import Mock, patch
 
-from ci import Campaign
+from ci import Campaign, require_share_test_cache
+
+
+class ShareTestCacheTests(unittest.TestCase):
+    def test_typed_bool_off_accepts_universal(self):
+        cache = ('SWARAXT_SHARE_TEST_JUCE:BOOL=OFF\n'
+                 'SWARAXT_SHARE_TEST_PRODUCTION:BOOL=OFF\n')
+        self.assertEqual(require_share_test_cache(cache, True), (False, False))
+
+    def test_typed_bool_on_accepts_native(self):
+        cache = ('SWARAXT_SHARE_TEST_JUCE:BOOL=ON\n'
+                 'SWARAXT_SHARE_TEST_PRODUCTION:BOOL=ON\n')
+        self.assertEqual(require_share_test_cache(cache, False), (True, True))
+
+    def test_uninitialized_unused_vars_fail_universal(self):
+        # Observed when SWARA_BUILD_TESTS=OFF and -DVAR=OFF is untyped.
+        cache = ('SWARAXT_SHARE_TEST_JUCE:UNINITIALIZED=OFF\n'
+                 'SWARAXT_SHARE_TEST_PRODUCTION:UNINITIALIZED=OFF\n')
+        with self.assertRaisesRegex(RuntimeError, 'must not share test objects'):
+            require_share_test_cache(cache, True)
+
+    def test_universal_rejects_sharing_enabled(self):
+        cache = ('SWARAXT_SHARE_TEST_JUCE:BOOL=ON\n'
+                 'SWARAXT_SHARE_TEST_PRODUCTION:BOOL=ON\n')
+        with self.assertRaisesRegex(RuntimeError, 'must not share test objects'):
+            require_share_test_cache(cache, True)
+
+    def test_native_rejects_sharing_disabled(self):
+        cache = ('SWARAXT_SHARE_TEST_JUCE:BOOL=OFF\n'
+                 'SWARAXT_SHARE_TEST_PRODUCTION:BOOL=OFF\n')
+        with self.assertRaisesRegex(RuntimeError, 'must share identically configured objects'):
+            require_share_test_cache(cache, False)
+
+    def test_configure_passes_typed_bool(self):
+        text = Path(__file__).resolve().with_name('ci.py').read_text()
+        self.assertIn("'-DSWARAXT_SHARE_TEST_JUCE:BOOL=' + ('OFF' if universal else 'ON')", text)
+        self.assertIn(
+            "'-DSWARAXT_SHARE_TEST_PRODUCTION:BOOL=' + ('OFF' if universal else 'ON')", text)
 
 
 class AuDiscoveryTests(unittest.TestCase):

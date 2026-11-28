@@ -30,6 +30,23 @@ JUCE_SHA = 'e18f7f506c0b96f2c738a0bcd7fe6467a5005ad8'
 SOURCE = Path(__file__).resolve().parents[2]
 
 
+def require_share_test_cache(cache, universal):
+    """Fail closed on typed BOOL share-test settings. Untyped unused -D vars are not authority."""
+    juce = 'SWARAXT_SHARE_TEST_JUCE:BOOL='
+    production = 'SWARAXT_SHARE_TEST_PRODUCTION:BOOL='
+    if universal:
+        require(juce + 'OFF' in cache and production + 'OFF' in cache,
+                'Universal product builds must not share test objects')
+        require(juce + 'ON' not in cache and production + 'ON' not in cache,
+                'Universal product builds must not share test objects')
+        return False, False
+    require(juce + 'ON' in cache and production + 'ON' in cache,
+            'Apple native tests must share identically configured objects')
+    require(juce + 'OFF' not in cache and production + 'OFF' not in cache,
+            'Apple native tests must share identically configured objects')
+    return True, True
+
+
 def digest(path):
     with path.open('rb') as stream:
         return hashlib.file_digest(stream, 'sha256').hexdigest()
@@ -163,23 +180,18 @@ class Campaign(PublicInfrastructure):
                  '-DCMAKE_OSX_DEPLOYMENT_TARGET=11.0', '-DSWARAXT_JUCE_DIR=' + str(juce),
                  '-DSWARA_BUILD_STANDALONE=OFF', '-DSWARA_BUILD_SKIN_EDITOR=OFF',
                  '-DSWARA_BUILD_TESTS=' + ('OFF' if universal else 'ON'),
-                 '-DSWARAXT_SHARE_TEST_JUCE=' + ('OFF' if universal else 'ON'),
-                 '-DSWARAXT_SHARE_TEST_PRODUCTION=' + ('OFF' if universal else 'ON'),
+                 # Typed BOOL survives unused-variable retention when SWARA_BUILD_TESTS=OFF
+                 # (Qualification.cmake option() declarations are not loaded then).
+                 '-DSWARAXT_SHARE_TEST_JUCE:BOOL=' + ('OFF' if universal else 'ON'),
+                 '-DSWARAXT_SHARE_TEST_PRODUCTION:BOOL=' + ('OFF' if universal else 'ON'),
                  '-DCMAKE_C_FLAGS=' + ' '.join(flags), '-DCMAKE_CXX_FLAGS=' + ' '.join(flags),
                  '-DCMAKE_OBJCXX_FLAGS=' + ' '.join(flags)])
         cache = (build / 'CMakeCache.txt').read_text()
         for setting in ['SWARA_BUILD_STANDALONE:BOOL=OFF', 'SWARA_BUILD_SKIN_EDITOR:BOOL=OFF']:
             require(setting in cache, 'Qualification invariant: setting in cache')
-        if not universal:
-            require('SWARAXT_SHARE_TEST_JUCE:BOOL=ON' in cache
-                    and 'SWARAXT_SHARE_TEST_PRODUCTION:BOOL=ON' in cache,
-                    'Apple native tests must share identically configured objects')
-            self.report['share_test_juce'] = True
-            self.report['share_test_production'] = True
-        else:
-            require('SWARAXT_SHARE_TEST_JUCE:BOOL=OFF' in cache
-                    and 'SWARAXT_SHARE_TEST_PRODUCTION:BOOL=OFF' in cache,
-                    'Universal product builds must not share test objects')
+        share_juce, share_production = require_share_test_cache(cache, universal)
+        self.report['share_test_juce'] = share_juce
+        self.report['share_test_production'] = share_production
 
         if not universal:
             shutil.copy2(build / 'compile_commands.json', self.root / 'compile-commands.json')

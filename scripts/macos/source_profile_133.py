@@ -279,8 +279,9 @@ def compare_source_133(source, checkout_sha, base_sha, git_tree, original_base,
             and '0x0099139bef0f1690ull' not in goldens,
             'Classic F/G/I must match official public 1.3.3, not Phase3')
     ci_text = (source / 'scripts/macos/ci.py').read_text()
-    require("'-DSWARAXT_SHARE_TEST_JUCE=' + ('OFF' if universal else 'ON')" in ci_text
+    require("'-DSWARAXT_SHARE_TEST_JUCE:BOOL=' + ('OFF' if universal else 'ON')" in ci_text
             and "SWARAXT_SHARE_TEST_JUCE:BOOL=ON" in ci_text
+            and 'require_share_test_cache' in ci_text
             and "CMAKE_SYSTEM_NAME STREQUAL \"Linux\" OR APPLE" in
             (source / 'Tests/Qualification.cmake').read_text(),
             'Apple native tests must share identically configured objects')

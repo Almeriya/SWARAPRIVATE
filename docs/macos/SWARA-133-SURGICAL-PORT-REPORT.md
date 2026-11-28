@@ -945,3 +945,13 @@ Workflow: `macos-qualification.yml`, `mode=full` (preflight ARM64/Intel, univers
 | Result | **PENDING** |
 
 No CI polling. Results will be reviewed in a later user-initiated session. PR #1 remains unmerged. No local compilation. No Apple credentials. No release or notarization.
+
+---
+
+## Amendment — universal share-test cache type fix; `mode=build` only
+
+Runs [46112476806](https://github.com/Almeriya/SWARAPRIVATE/actions/runs/46112476806) and [46112517338](https://github.com/Almeriya/SWARAPRIVATE/actions/runs/46112517338) failed universal before AU/VST3 compile: untyped `-DSWARAXT_SHARE_TEST_*=OFF` with `SWARA_BUILD_TESTS=OFF` left unused `UNINITIALIZED` cache entries, so the Python `BOOL=OFF` check raised. Not a product compile failure.
+
+Fix: pass `-DSWARAXT_SHARE_TEST_JUCE:BOOL=` / `-DSWARAXT_SHARE_TEST_PRODUCTION:BOOL=` and validate via `require_share_test_cache` (universal OFF, native ON; rejects UNINITIALIZED and the opposite BOOL). Regression tests in `test_ci.py`. Owner checklist: `docs/macos/NATIVE-REFERENCE-OWNER-DECISION.md`. Full-family admission still blocks `mode=full`.
+
+Next dispatch: **one `mode=build` only** (not full). Result **PENDING**.
