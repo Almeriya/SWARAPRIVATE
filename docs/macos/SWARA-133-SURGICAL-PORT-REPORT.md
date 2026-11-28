@@ -750,7 +750,7 @@ Do **not** copy candidate hashes into `CurrentAudioGoldens.h` from these capture
 ### Remaining qualification blockers
 
 1. Same-SHA ARM64 Classic PCM vs Intel — **PASS** (bitwise; not qualification).
-2. Owner admission of public 1.3.3 F/G/I goldens into the Mac header — **REVIEW_REQUIRED**.
+2. Owner-authorized public 1.3.3 F/G/I header restoration — applied at `826e31c`; uninstrumented Debug AudioParity **PASS** on Intel and ARM64 (not qualification). Independent native-reference admission still **REVIEW_REQUIRED**.
 3. Restore completion in Release / asan-ubsan / tsan — **NOT_RUN**.
 4. Native full-inventory timeouts — **INCOMPLETE**.
 5. Full eight-profile matrix — **not dispatched**.
@@ -774,4 +774,11 @@ Intel [46062372695](https://github.com/Almeriya/SWARAPRIVATE/actions/runs/460623
 
 Source profile: protected pin updated from Phase3 blob `6bd4da7…` (also the 1.3.1 baseline) to the public 1.3.3 blob. Arbitrary golden rewrites still fail `protected Mac test/golden mismatch` / `golden rewritten`. Independent native audio-reference admission remains **REVIEW_REQUIRED**.
 
-Focused uninstrumented `SwaraXTAudioParityTests` Debug dispatches (not `--classic-pcm-capture`): **PENDING**. Full matrix **not dispatched**. PR #1 unmerged.
+Focused uninstrumented `SwaraXTAudioParityTests` Debug (not `--classic-pcm-capture`, SHA `826e31c839f28dddc2742a24733f995452447907`): **PASS** as targeted native tests, not full qualification.
+
+| Arch | Run | Decision | CTest |
+| --- | --- | --- | --- |
+| x86_64 Debug, macOS 15.7.9 | [46100887687](https://github.com/Almeriya/SWARAPRIVATE/actions/runs/46100887687) | `TARGETED_NATIVE_TEST_PASS_NOT_QUALIFIED` | exit 0, 1/1 |
+| arm64 Debug, macOS 15.8.2 | [46100889871](https://github.com/Almeriya/SWARAPRIVATE/actions/runs/46100889871) | `TARGETED_NATIVE_TEST_PASS_NOT_QUALIFIED` | exit 0, 1/1 |
+
+Both printed all eight official 1.3.3 Classic Q23 hashes (A/B/C/F/G/I/D/J). No `FAIL:` lines. Capture flag off (`classic_pcm_files: []`). Independent `native_reference.py` admission remains **REVIEW_REQUIRED**. Restore Release/sanitizers **NOT_RUN**. Full matrix **not dispatched**. PR #1 unmerged.
