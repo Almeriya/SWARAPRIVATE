@@ -897,18 +897,16 @@ Applied, independently justified CI recovery only:
 
 Not done: timeout increase, sanitizer disable, object reuse across arch/profile/sanitizer, eight-profile shards, or a build-system rewrite. Next dedicated redesign, after a hosted post-sharing command count: fail-closed shards whose union equals the frozen CTest inventory, same SHA/toolchain/sanitizer, merged evidence.
 
-### Sanitizer restore qualification — dispatched, **PENDING**
+### Sanitizer restore qualification — **PASS** (targeted, not full qualification)
 
-Workflow `.github/workflows/macos-build-recovery.yml`, suite `restore-completion`. Each dispatch is the existing two-job matrix (`SwaraXTRestoreCompletionTests` + `SwaraXTHostStateSafetyTests`). ASan/UBSan keeps `-fsanitize=address,undefined,vptr`, `-fno-sanitize-recover=all`, halt_on_error. TSan keeps `-fsanitize=thread` and halt_on_error. Negative controls remain required. Results **PENDING**.
+Workflow `.github/workflows/macos-build-recovery.yml`, suite `restore-completion`, source `daee1a5a5c99bcd2b9c1f24d9f6b608aeadad0b3`. Each run completed both jobs (`SwaraXTRestoreCompletionTests` + `SwaraXTHostStateSafetyTests`). ASan/UBSan kept `-fsanitize=address,undefined,vptr` with halt_on_error. TSan kept `-fsanitize=thread` with halt_on_error. These are focused restore probes, not eight-profile native qualification.
 
-| Architecture | Profile | Coverage | Result |
+| Architecture | Profile | Run | Result |
 | --- | --- | --- | --- |
-| ARM64 | asan-ubsan | 6 RestoreCompletion + 8 HostRestoreFault | **PENDING** |
-| ARM64 | tsan | same 14 CTest names | **PENDING** |
-| Intel x86_64 | asan-ubsan | same 14 CTest names | **PENDING** |
-| Intel x86_64 | tsan | same 14 CTest names | **PENDING** |
-
-Stage 4 full matrix **not dispatched**.
+| ARM64 | asan-ubsan | [46110329553](https://github.com/Almeriya/SWARAPRIVATE/actions/runs/46110329553) | **PASS** (both CTest targets) |
+| ARM64 | tsan | [46110332051](https://github.com/Almeriya/SWARAPRIVATE/actions/runs/46110332051) | **PASS** (both CTest targets) |
+| Intel x86_64 | asan-ubsan | [46110334308](https://github.com/Almeriya/SWARAPRIVATE/actions/runs/46110334308) | **PASS** (both CTest targets) |
+| Intel x86_64 | tsan | [46110336518](https://github.com/Almeriya/SWARAPRIVATE/actions/runs/46110336518) | **PASS** (both CTest targets) |
 
 ### Source-profile implications
 
@@ -916,9 +914,34 @@ Five Apple `Source/` exceptions are unchanged. Classic owner approval is not a s
 
 ### Remaining full native qualification blockers
 
-1. Four sanitizer restore configurations — **PENDING** this dispatch.
-2. Release Classic AudioParity — **NOT_RUN**.
-3. Independent full-family native-reference admission — **REVIEW_REQUIRED**.
-4. Hosted post-sharing `SwaraXTQualificationTests` Ninja command count — **NOT_RUN**.
-5. Complete eight-profile native matrix — **not dispatched**.
+1. Four sanitizer restore configurations — **PASS** (targeted).
+2. Release Classic AudioParity — covered by the Stage 4 matrix when it executes native profiles; independent admission still **REVIEW_REQUIRED**.
+3. Independent full-family native-reference admission — **REVIEW_REQUIRED**; `require_approved_authority` remains fail-closed, so the final `mode=full` gate may still **BLOCK** even if all native jobs succeed.
+4. Hosted post-sharing `SwaraXTQualificationTests` Ninja command count — expected from Stage 4 native artifacts.
+5. Complete eight-profile native matrix — **PENDING** owner-authorized dispatch below.
 6. PR #1 unmerged. No release. No notarization.
+
+---
+
+## Amendment — owner-authorized Stage 4 full matrix dispatched
+
+Owner explicitly authorized Stage 4. Frozen source SHA: `daee1a5a5c99bcd2b9c1f24d9f6b608aeadad0b3`.
+
+Prerequisites recorded before dispatch:
+
+- Debug/Release restore PASS on ARM64 and Intel
+- Sanitizer restore PASS on ARM64 and Intel (ASan/UBSan and TSan)
+- Universal AU/VST3 build previously PASS
+- Classic Debug/Release public 1.3.3 goldens owner-approved (narrow; full-family admission still fail-closed)
+
+Workflow: `macos-qualification.yml`, `mode=full` (preflight ARM64/Intel, universal, smoke, eight native profiles Release/Debug/asan-ubsan/tsan × arm64/x86_64, plus existing gates).
+
+| Item | Value |
+| --- | --- |
+| Run | https://github.com/Almeriya/SWARAPRIVATE/actions/runs/46112476806 |
+| Event | `workflow_dispatch` |
+| Mode | `full` |
+| Source SHA | `daee1a5a5c99bcd2b9c1f24d9f6b608aeadad0b3` |
+| Result | **PENDING** |
+
+No CI polling. Results will be reviewed in a later user-initiated session. PR #1 remains unmerged. No local compilation. No Apple credentials. No release or notarization.
