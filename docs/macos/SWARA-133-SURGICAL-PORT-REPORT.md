@@ -790,3 +790,18 @@ Both printed all eight official 1.3.3 Classic Q23 hashes (A/B/C/F/G/I/D/J). No `
 Push-triggered `macos-qualification.yml` at `f8c739593dc367770b210d9aa9cc76bff001972f` ([46103822351](https://github.com/Almeriya/SWARAPRIVATE/actions/runs/46103822351)): preflight ARM64/Intel **PASS**, universal **PASS**, smoke/native **skipped** (`mode=build`). That is `BUILD_PASS_UNQUALIFIED`, not native qualification. REUSE remains failing and is **out of scope**.
 
 Next sequenced focused probe (not the eight-profile matrix): ARM64 Debug restore already **PASS**; Intel Debug restore already **PASS**; Classic Debug AudioParity already **PASS**. Dispatch ARM64 **Release** restore-completion (`suite=restore-completion`) once. Result **PENDING**.
+
+---
+
+## Amendment — ARM64 Release restore PASS; Intel Release dispatched
+
+Source: `729216cc9891b893a9007c4f5a1e4e2fd9901fc1`.  
+Focused ARM64 Release: https://github.com/Almeriya/SWARAPRIVATE/actions/runs/46106349742 — **PASS** (`TARGETED_NATIVE_TEST_PASS_NOT_QUALIFIED`; not full qualification).
+
+RestoreCompletion (`^SwaraXTRestoreCompletion`) 6/6 **PASS**, CTest exit 0: default, listeners, preempt, root, allocation, admission.
+
+Host restore (`^(SwaraXTHostStateSafetyTests|SwaraXTHostRestoreFault-)`) 8/8 **PASS**, CTest exit 0: default plus fault-decode/tuning/snapshot/parameter/sequence/post/metadata.
+
+Intel Release restore and sanitizer restore remain **NOT_RUN**. Independent audio admission **REVIEW_REQUIRED**. Full matrix **not dispatched**. PR #1 unmerged.
+
+Intel x86_64 Release restore-completion dispatch: **PENDING**.
