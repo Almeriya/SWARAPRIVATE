@@ -13,7 +13,10 @@ import zipfile
 
 from processes import run_process, ProcessResult
 
-REPOSITORY = 'RIG-AUDIO/SW2'
+REPOSITORY = 'Almeriya/SWARAPRIVATE'
+# GitHub reports github.event.repository.private as this boolean string.
+# Almeriya/SWARAPRIVATE is public; do not change GitHub visibility.
+REPOSITORY_PRIVATE = 'false'
 JUCE_SHA = 'e18f7f506c0b96f2c738a0bcd7fe6467a5005ad8'
 SDK_SHA = '9fad9770f2ae8542ab1a548a68c1ad1ac690abe0'
 SEAL = 'CI_AD_HOC_SEALED_NOT_DEVELOPER_ID_SIGNED'
@@ -65,8 +68,9 @@ def owned_path(path, root):
 
 def hosted_root(root, source=None):
     require(os.environ.get('GITHUB_ACTIONS') == 'true', 'GitHub Actions is required')
-    require(os.environ.get('GITHUB_REPOSITORY') == REPOSITORY, 'Public SW2 only')
-    require(os.environ.get('SWARAXT_REPOSITORY_PRIVATE') == 'false', 'Public repository event required')
+    require(os.environ.get('GITHUB_REPOSITORY') == REPOSITORY, 'Authorized Almeriya/SWARAPRIVATE only')
+    require(os.environ.get('SWARAXT_REPOSITORY_PRIVATE') == REPOSITORY_PRIVATE,
+            'Authorized repository visibility required')
     require(os.environ.get('RUNNER_ENVIRONMENT') == 'github-hosted', 'Ephemeral GitHub-hosted runner required')
     root = owned_path(root, os.environ['RUNNER_TEMP'])
     if source is not None:
@@ -137,7 +141,7 @@ def git_tree(source, ref):
             for entry in output.split(b'\0') if entry}
 
 
-PARSER_HASHES = {'Source/Tuning/RealFromChars.h': 'fb47ca3421c701681d53025fe11e883ae9e4fcf376d904a7c34d2a9a772b7d96', 'third_party/fast_float/UPSTREAM.json': '43d3685de2707cb0830ca59b561dd33d214e0eefe31112b94bb7558a67bfc391', 'REUSE.toml': '53860a3e09d87db5dc318ef5e2ca51a93c035248aa4f595caf4fbef9674f5c14', 'LICENSES/MIT.txt': 'e562f3f974ced7e69dd1db77b820b36bcf8f30377f1aa105723fba449c53c4e6'}
+PARSER_HASHES = {'Source/Tuning/RealFromChars.h': 'fb47ca3421c701681d53025fe11e883ae9e4fcf376d904a7c34d2a9a772b7d96', 'third_party/fast_float/UPSTREAM.json': '43d3685de2707cb0830ca59b561dd33d214e0eefe31112b94bb7558a67bfc391', 'REUSE.toml': 'f6a0947d638df37fb99705fa255efcbfacfd8d44e5a600c8d1629f5df956c849', 'LICENSES/MIT.txt': 'e562f3f974ced7e69dd1db77b820b36bcf8f30377f1aa105723fba449c53c4e6'}
 
 APPLE_GUARD_TEST = 'Tests/avrlib_hd/UpperRegisterOscillatorTestsMain.cpp'
 APPLE_GUARD_TEST_SHA256 = '1fcf09b4c4413d3b08470dd370e5edbce83d9b648822a1c52b5344c7b48f91f1'
@@ -166,7 +170,13 @@ def verify_dual_integration_selection(source):
 
 def compare_public(source, baseline, checkout_sha, base_sha):
     require(base_sha == BASE_SHA, 'Approved SW2 base required')
-    # Separate reviewed 1.3.1 source profile; retain original 1.3.0 admission below.
+    cmake = Path(source) / 'CMakeLists.txt'
+    cmake_text = cmake.read_text() if cmake.is_file() else ''
+    # Separate reviewed 1.3.3 surgical profile; retain 1.3.1 and 1.3.0 admission below.
+    if 'project(SwaraXT VERSION 1.3.3 LANGUAGES C CXX)' in cmake_text:
+        from source_profile_133 import compare_source_133
+        return compare_source_133(source, checkout_sha, base_sha, git_tree,
+                                  BASE_SHA, PRODUCTION_PARITY, HOST_ARITHMETIC)
     if (Path(source) / 'Source/Ui/SwaraXtPanelWidgets.cpp').exists():
         from source_profile_131 import compare_source_131
         return compare_source_131(source, checkout_sha, base_sha, git_tree,

@@ -1,0 +1,36 @@
+---
+description: SWARA XT macOS engineering safety, parity, CI-only builds, and PR discipline
+alwaysApply: true
+---
+
+<!--
+SPDX-FileCopyrightText: 2026 MontroneDSP
+SPDX-License-Identifier: GPL-3.0-or-later
+-->
+
+# macOS engineering constraints
+
+## Source and product
+
+- Keep official SWARA XT 1.3.3 production `Source/` parity except documented Apple exceptions in the 1.3.3 source profile.
+- Preserve JUCE 9.0.1 and the pinned Apple CI toolchain.
+- Do not weaken assertions or regenerate audio goldens to manufacture passes.
+- Unresolved Mac audio authority remains `REVIEW_REQUIRED`; do not bypass `native_reference.py`.
+
+## Compilation
+
+- GitHub Actions only for product/native test compilation.
+- No local Ninja, CMake product builds, Xcode product builds, JUCE rebuilds, or CTest compilation on this Intel Mac.
+- This Mac is for REAPER / runtime validation of already-built candidates.
+
+## Security and release
+
+- Never access, commit, or expose Apple credentials, signing keys, notarization material, or Keychain secrets.
+- CI stays secret-free; unsigned or ad-hoc engineering builds only.
+- Do not merge PR #1, modify `main`, force-push, publish releases/tags, or update customer downloads without explicit authorization.
+- Continue on `port/swaraxt-133-macos-surgical` for the surgical macOS port.
+
+## CI usage
+
+- Prefer focused hosted probes over full eight-profile matrices for known failures.
+- Follow the always-applied no-polling rule: dispatch once, mark PENDING, exit.

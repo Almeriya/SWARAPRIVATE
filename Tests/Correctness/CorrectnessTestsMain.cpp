@@ -794,8 +794,14 @@ void testSwaraFilterRouteSeparation()
     expect(std::abs(cutoffParams.cutoffHz - std::clamp(20000.f * std::exp2((voice.cutoff() - 254.f) / 24.f), 10.f, 20000.f)) < 1.e-4f
                && cutoffParams.matrixCutoffOctaves == 0,
            "matrix cutoff is already included in final firmware CV, with no duplicate delta");
+    // Classic board CV includes the intentional knob sub-semitone trim. LFO2 is
+    // still applied only inside firmware voice.cutoff(); the trim must not be
+    // mistaken for a second LFO path.
+    const double expectedBoardCv = (static_cast<double>(voice.cutoff())
+        + static_cast<double>(proc.engineForTests().knobCutoffTrimBytesForTests()))
+        * (5.0 / 255.0);
     expect(proc.engineForTests().shruthiPart().patch().filter_lfo == 63
-               && std::abs(cutoffParams.boardCutoffCvVolts - voice.cutoff() * (5.0 / 255.0)) < 1.e-12,
+               && std::abs(cutoffParams.boardCutoffCvVolts - expectedBoardCv) < 1.e-12,
            "dedicated native LFO2 depth reaches board CV exactly once");
 
     setPhysical("mod.row1.destination", static_cast<float>(shruthi::MOD_DST_FILTER_RESONANCE));

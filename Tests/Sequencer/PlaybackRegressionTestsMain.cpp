@@ -84,7 +84,14 @@ void oldPrograms() {
     const int oldIndices[] = {51, 63, 71, 72, 74, 75};
     for (int i = 0; i < 6; ++i) {
         check(p.getProgramName(51+i) == names[i], "retained deterministic index");
-        p.setCurrentProgram(51+i); render(p, host, 1);
+        // Explicit preset load clears host-session reassertion guarding. After
+        // setStateInformation, setCurrentProgram is intentionally a no-op.
+        // loadFactoryPreset is private; loadPresetEntry is the public path.
+        juce::String loadError;
+        SwaraXtAudioProcessor::PresetEntry factory {
+            p.getProgramName(51+i), {}, 51+i, true };
+        check(p.loadPresetEntry(factory, loadError), "explicit factory selection before remap capture");
+        render(p, host, 1);
         juce::MemoryBlock saved; p.getStateInformation(saved);
         auto xml = juce::AudioProcessor::getXmlFromBinary(saved.getData(), static_cast<int>(saved.getSize()));
         xml->setAttribute("currentProgram", oldIndices[i]);

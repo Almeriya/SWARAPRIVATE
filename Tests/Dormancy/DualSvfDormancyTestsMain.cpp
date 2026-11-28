@@ -87,9 +87,17 @@ struct Trace {
     uint64_t blocksAfterEmpty = 0;
     float drainInput = 0;
     float lastPostFx = 0;
+    // CC120 emergency silence resets the production Dual delay while awake.
+    bool armPanicResync = false;
     void clearFifo() { fifo.fill(0); cursor = 0; pending = 0; }
     static void tap(void* context, const SwaraXtEngine::DebugBlockCapture& b) {
         auto& t = *static_cast<Trace*>(context); auto& e = *t.engine;
+        if (t.armPanicResync) {
+            t.clearFifo();
+            // Panic drops the Dual tail; do not enforce pre-panic insertion timing.
+            t.lastInput = t.lastOutput = t.exactZero = -1;
+            t.armPanicResync = false;
+        }
         t.lastPostFx = b.filterOutput[b.samples - 1];
         for (int i = 0; i < b.samples; ++i) {
             const auto n = static_cast<int64_t>(b.nativeBlockIndex) * 40 + i;
@@ -139,7 +147,12 @@ ReleaseResult release(int route, int cal, int fx, double rate, int size, int off
     if (!artifacts.empty() && fx == 6) { measured.reserve(static_cast<size_t>(end)); unchanged.reserve(static_cast<size_t>(end)); }
     for (int pos = 0; pos < end; pos += size) {
         if (pos == 0) { m.addEvent(juce::MidiMessage::noteOn(1, 48, static_cast<juce::uint8>(110)), 0); if (control) cm = m; }
-        if (pos == off) { m.addEvent(offCode ? juce::MidiMessage::controllerEvent(1, offCode, 0) : juce::MidiMessage::noteOff(1, 48), 0); if (control) cm = m; }
+        if (pos == off) {
+            m.addEvent(offCode ? juce::MidiMessage::controllerEvent(1, offCode, 0) : juce::MidiMessage::noteOff(1, 48), 0);
+            // Production applyEmergencySilence() resets Dual delay on CC120 only.
+            if (offCode == 120) result.trace.armPanicResync = true;
+            if (control) cm = m;
+        }
         process(*p, b, m, &result.trace); if (control) process(*control, c, cm);
         const bool asleep = p->engineForTests().dormantForTests();
         if (asleep && result.sleepHost < 0) result.sleepHost = pos + size;

@@ -1,0 +1,47 @@
+---
+description: Prevent CI polling, workflow waiting and repeated GitHub Actions status checks
+alwaysApply: true
+---
+
+<!--
+SPDX-FileCopyrightText: 2026 MontroneDSP
+SPDX-License-Identifier: GPL-3.0-or-later
+-->
+
+# GitHub Actions — no wait / no poll
+
+**AGENTS MUST NOT POLL OR WAIT FOR GITHUB ACTIONS.**
+
+Permitted workflow: `INSPECT COMPLETED EVIDENCE → IMPLEMENT → COMMIT → PUSH → DISPATCH → REPORT → EXIT`
+
+Coding agents must never remain active solely to await GitHub Actions completion.
+
+## Forbidden
+
+- `gh run watch`
+- Repeated `gh run view` or `gh run list` to await completion
+- Repeated GitHub API calls checking workflow completion
+- Shell `watch` or polling loops
+- `sleep` followed by CI status checks
+- Periodic workflow monitoring
+- Waiting for runners to start or finish
+- Keeping a session open because CI is running
+- Automatically redispatched failed workflows without a new evidence-based user task
+- Launching redundant complete CI matrices
+
+## Required session pattern
+
+1. Read existing **completed** CI evidence once when needed.
+2. Perform useful source engineering.
+3. Commit changes.
+4. Push changes.
+5. Dispatch the appropriate focused CI workflow **once**.
+6. Record the dispatch confirmation or returned run URL.
+7. Mark new CI results `PENDING`.
+8. **End the session immediately.**
+
+If GitHub does not immediately return a run URL, report workflow name, branch, commit, and dispatch confirmation. Do not poll to discover the URL.
+
+A later, explicitly user-requested review session may retrieve completed results. That one-shot status check is allowed; waiting loops are not.
+
+**Work → commit → push → dispatch → exit.**

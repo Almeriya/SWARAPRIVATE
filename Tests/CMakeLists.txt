@@ -270,6 +270,24 @@ if(NOT MSVC)
 endif()
 add_test(NAME AvrlibHdVowelTests COMMAND AvrlibHdVowelTests)
 
+# AVR 16-bit wrap of the vowel breath compare. Fails if the reset is widened
+# to a signed 32-bit add (the host int width).
+add_executable(AvrlibHdVowelPhaseWrapTests
+    avrlib_hd/VowelPhaseWrapTestsMain.cpp
+)
+target_include_directories(AvrlibHdVowelPhaseWrapTests PRIVATE
+    "${SWARAXT_INCLUDE_FIRST}"
+)
+if(MSVC)
+    target_compile_options(AvrlibHdVowelPhaseWrapTests PRIVATE /W4 /permissive- /WX)
+else()
+    target_compile_options(AvrlibHdVowelPhaseWrapTests PRIVATE -Wall -Wextra -Wpedantic -Werror)
+endif()
+if(NOT MSVC)
+    target_link_libraries(AvrlibHdVowelPhaseWrapTests PRIVATE m)
+endif()
+add_test(NAME AvrlibHdVowelPhaseWrapTests COMMAND AvrlibHdVowelPhaseWrapTests)
+
 add_executable(SwaraXTTests
     SwaraXtTestsMain.cpp
     ${SWARAXT_SHRUTHI_SOURCES}
@@ -322,7 +340,7 @@ target_compile_definitions(SwaraXTDcDormancyTests PRIVATE SWARAXT_ENABLE_IDLE_CP
 swaraxt_add_plugin_console_test(SwaraXTMultiInstanceTests LiveEngine/MultiInstanceTestsMain.cpp)
 
 function(swaraxt_add_audio_regression_target target mode)
-    if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND SWARAXT_SHARE_TEST_PRODUCTION)
+    if((CMAKE_SYSTEM_NAME STREQUAL "Linux" OR APPLE) AND SWARAXT_SHARE_TEST_PRODUCTION)
         set(SWARAXT_TEST_MODE_DEFINE SWARAXT_AUDIO_TEST_MODE)
         set(SWARAXT_TEST_MODE_VALUE ${mode})
         set(SWARAXT_TEST_MODE_SOURCE "${CMAKE_CURRENT_SOURCE_DIR}/AudioRegression/AudioRegressionTestsMain.cpp")
@@ -335,12 +353,16 @@ function(swaraxt_add_audio_regression_target target mode)
 endfunction()
 
 swaraxt_add_audio_regression_target(SwaraXTAudioParityTests 0)
+option(SWARAXT_CLASSIC_PCM_CAPTURE "Write Classic float32 captures; never admits goldens" OFF)
+if(SWARAXT_CLASSIC_PCM_CAPTURE)
+    target_compile_definitions(SwaraXTAudioParityTests PRIVATE SWARAXT_CLASSIC_PCM_CAPTURE=1)
+endif()
 swaraxt_add_audio_regression_target(SwaraXTSignalChainTests 1)
 swaraxt_add_audio_regression_target(SwaraXTInitializationTests 2)
 swaraxt_add_audio_regression_target(SwaraXTQueueIntegrityTests 3)
 
 function(swaraxt_add_shruthi_timing_target target mode)
-    if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND SWARAXT_SHARE_TEST_PRODUCTION)
+    if((CMAKE_SYSTEM_NAME STREQUAL "Linux" OR APPLE) AND SWARAXT_SHARE_TEST_PRODUCTION)
         set(SWARAXT_TEST_MODE_DEFINE SWARAXT_SHRUTHI_TIMING_TEST_MODE)
         set(SWARAXT_TEST_MODE_VALUE ${mode})
         set(SWARAXT_TEST_MODE_SOURCE "${CMAKE_CURRENT_SOURCE_DIR}/ShruthiTiming/ShruthiTimingTestsMain.cpp")
@@ -365,6 +387,15 @@ swaraxt_add_shruthi_timing_target(SwaraXTEnvelopeRegressionTests 6)
 swaraxt_add_shruthi_timing_target(SwaraXTVcaHoldTests 7)
 
 swaraxt_add_plugin_console_test(SwaraXTGuiSyncTests GuiSync/GuiSyncTestsMain.cpp)
+swaraxt_add_plugin_console_test(SwaraXTHostGrooveTests Sequencer/HostGrooveTestsMain.cpp)
+add_executable(SwaraXTGrooveClockTests Sequencer/GrooveClockTestsMain.cpp)
+target_include_directories(SwaraXTGrooveClockTests PRIVATE "${CMAKE_SOURCE_DIR}/Source")
+if(MSVC)
+    target_compile_options(SwaraXTGrooveClockTests PRIVATE /W4 /permissive- /WX)
+else()
+    target_compile_options(SwaraXTGrooveClockTests PRIVATE -Wall -Wextra -Wpedantic -Werror)
+endif()
+add_test(NAME SwaraXTGrooveClockTests COMMAND SwaraXTGrooveClockTests)
 swaraxt_add_plugin_console_test(SwaraXTPitchInputTests avrlib_hd/PitchInputTestsMain.cpp)
 swaraxt_add_plugin_console_test(SwaraXTFmRangePluginTests avrlib_hd/FmRangePluginTestsMain.cpp)
 target_compile_definitions(SwaraXTFmRangePluginTests PRIVATE SWARAXT_ENABLE_SHRUTHI_DEBUG_TAPS=1)
@@ -407,6 +438,31 @@ swaraxt_add_plugin_console_test(SwaraXTShruthiFactoryPresetTests Presets/Shruthi
 swaraxt_add_plugin_console_test(SwaraXTFilterPresetAuthorityTests Architecture/FilterPresetAuthorityTests.cpp)
 target_compile_definitions(SwaraXTFilterPresetAuthorityTests PRIVATE SWARAXT_ENABLE_SHRUTHI_DEBUG_TAPS=1 JUCE_MODAL_LOOPS_PERMITTED=1)
 swaraxt_add_plugin_console_test(SwaraXTPresetStateRestoreTests Presets/PresetStateRestoreTestsMain.cpp)
+swaraxt_add_plugin_console_test(SwaraXTHostStateSafetyTests Presets/HostStateSafetyTestsMain.cpp)
+target_compile_definitions(SwaraXTHostStateSafetyTests PRIVATE
+    SWARAXT_ENABLE_TUNING_OWNERSHIP_TESTS=1 SWARAXT_ENABLE_STATE_PUBLICATION_TESTS=1
+    SWARAXT_ENABLE_SEQUENCE_SNAPSHOT_TESTS=1)
+swaraxt_add_plugin_console_test(SwaraXTRestoreCompletionTests Presets/RestoreCompletionTestsMain.cpp)
+target_compile_definitions(SwaraXTRestoreCompletionTests PRIVATE
+    SWARAXT_ENABLE_TUNING_OWNERSHIP_TESTS=1 SWARAXT_ENABLE_STATE_PUBLICATION_TESTS=1
+    SWARAXT_ENABLE_SEQUENCE_SNAPSHOT_TESTS=1)
+if(SWARAXT_DIAGNOSTICS_MODULE AND DIAG_SANITIZER STREQUAL "rtsan")
+    set_property(SOURCE Presets/HostStateSafetyTestsMain.cpp Presets/RestoreCompletionTestsMain.cpp
+        Sequencer/SequencerMidiTestsMain.cpp APPEND PROPERTY
+        COMPILE_DEFINITIONS SWARAXT_HOST_RESTORE_RTSAN=1)
+endif()
+swaraxt_enable_warnings_as_errors(SwaraXTHostStateSafetyTests)
+swaraxt_enable_warnings_as_errors(SwaraXTRestoreCompletionTests)
+set_tests_properties(SwaraXTHostStateSafetyTests PROPERTIES TIMEOUT 120)
+set_tests_properties(SwaraXTRestoreCompletionTests PROPERTIES TIMEOUT 120)
+foreach(mode listeners preempt root allocation admission)
+    add_test(NAME SwaraXTRestoreCompletion-${mode} COMMAND SwaraXTRestoreCompletionTests ${mode})
+    set_tests_properties(SwaraXTRestoreCompletion-${mode} PROPERTIES LABELS "host-state;exception" TIMEOUT 45)
+endforeach()
+foreach(phase decode tuning snapshot parameter sequence post metadata)
+    add_test(NAME SwaraXTHostRestoreFault-${phase} COMMAND SwaraXTHostStateSafetyTests fault-${phase})
+    set_tests_properties(SwaraXTHostRestoreFault-${phase} PROPERTIES LABELS "host-state;exception" TIMEOUT 30)
+endforeach()
 swaraxt_add_plugin_console_test(SwaraXTRestoreTransactionTests Presets/RestoreTransactionTestsMain.cpp)
 target_compile_definitions(SwaraXTRestoreTransactionTests PRIVATE
     SWARAXT_ENABLE_TUNING_OWNERSHIP_TESTS=1 SWARAXT_ENABLE_STATE_PUBLICATION_TESTS=1
@@ -445,12 +501,33 @@ add_test(NAME SwaraXTQuantizerTests COMMAND SwaraXTQuantizerTests
     "${CMAKE_SOURCE_DIR}/Source/Tuning/builtin")
 
 swaraxt_add_plugin_console_test(SwaraXTSequencerTests Sequencer/SequencerTestsMain.cpp)
+swaraxt_add_plugin_console_test(SwaraXTSequencerSafetyTests Sequencer/SequencerSafetyTestsMain.cpp)
+swaraxt_add_plugin_console_test(SwaraXTSequencerSafetyBridgeTests Sequencer/SequencerSafetyBridgeTestsMain.cpp)
+set_tests_properties(SwaraXTSequencerSafetyBridgeTests PROPERTIES TIMEOUT 120)
+set_tests_properties(SwaraXTSequencerSafetyTests PROPERTIES TIMEOUT 180)
+foreach(scenario groove arp-valid arp-invalid arp-zero)
+    add_test(NAME SwaraXTSequencerSafety-${scenario} COMMAND SwaraXTSequencerSafetyTests ${scenario})
+    set_tests_properties(SwaraXTSequencerSafety-${scenario} PROPERTIES TIMEOUT 90 LABELS "headless;sequencer-safety")
+endforeach()
+set_tests_properties(SwaraXTSequencerSafety-arp-zero PROPERTIES TIMEOUT 5)
 target_compile_definitions(SwaraXTSequencerTests PRIVATE JUCE_MODAL_LOOPS_PERMITTED=1)
 swaraxt_add_plugin_console_test(SwaraXTSequencePackExactTests Sequencer/SequencePackExactTestsMain.cpp)
 swaraxt_add_plugin_console_test(SwaraXTSequenceSnapshotTests Sequencer/SequenceSnapshotTestsMain.cpp)
 target_compile_definitions(SwaraXTSequenceSnapshotTests PRIVATE SWARAXT_ENABLE_SEQUENCE_SNAPSHOT_TESTS=1)
 swaraxt_enable_warnings_as_errors(SwaraXTSequenceSnapshotTests)
 set_tests_properties(SwaraXTSequenceSnapshotTests PROPERTIES TIMEOUT 60)
+swaraxt_add_plugin_console_test(SwaraXTArpAutomationRaceTests
+    Sequencer/ArpAutomationRaceTestsMain.cpp
+    Sequencer/ThrowingSequenceMutator.cpp)
+target_compile_definitions(SwaraXTArpAutomationRaceTests PRIVATE
+    SWARAXT_ENABLE_SEQUENCE_SNAPSHOT_TESTS=1 JUCE_MODAL_LOOPS_PERMITTED=1)
+swaraxt_enable_warnings_as_errors(SwaraXTArpAutomationRaceTests)
+if(MSVC)
+    # restorePrecedence keeps several processors in one frame. That frame is
+    # about 1 MiB, which overflows the 1 MiB default image stack on Windows.
+    target_link_options(SwaraXTArpAutomationRaceTests PRIVATE "/STACK:8388608")
+endif()
+set_tests_properties(SwaraXTArpAutomationRaceTests PROPERTIES TIMEOUT 90 LABELS "headless;parameter-authority")
 # Headless listener handoff/lifetime contracts; no editor or file chooser.
 juce_add_console_app(SwaraXTSequenceNotificationTests PRODUCT_NAME "SwaraXTSequenceNotificationTests")
 juce_generate_juce_header(SwaraXTSequenceNotificationTests)
@@ -553,10 +630,38 @@ set_tests_properties(SwaraXTCutoffContractTests PROPERTIES TIMEOUT 60)
 swaraxt_add_plugin_console_test(SwaraXTArchitectureControlTests Architecture/FilterControlTests.cpp)
 target_compile_definitions(SwaraXTArchitectureControlTests PRIVATE SWARAXT_ENABLE_SHRUTHI_DEBUG_TAPS=1)
 
+swaraxt_add_plugin_console_test(SwaraXTMidiCcNrpnAuthorityTests Sequencer/MidiCcNrpnAuthorityTestsMain.cpp)
+target_compile_definitions(SwaraXTMidiCcNrpnAuthorityTests PRIVATE JUCE_MODAL_LOOPS_PERMITTED=1)
+swaraxt_enable_warnings_as_errors(SwaraXTMidiCcNrpnAuthorityTests)
+set_tests_properties(SwaraXTMidiCcNrpnAuthorityTests PROPERTIES TIMEOUT 90 LABELS "headless;parameter-authority")
+swaraxt_add_plugin_console_test(SwaraXTMidiCc120EmergencySilenceTests Sequencer/MidiCc120EmergencySilenceTestsMain.cpp)
+target_compile_definitions(SwaraXTMidiCc120EmergencySilenceTests PRIVATE JUCE_MODAL_LOOPS_PERMITTED=1)
+swaraxt_enable_warnings_as_errors(SwaraXTMidiCc120EmergencySilenceTests)
+set_tests_properties(SwaraXTMidiCc120EmergencySilenceTests PROPERTIES TIMEOUT 180 LABELS "headless;midi;audio")
+swaraxt_add_plugin_console_test(SwaraXTDefensiveHardeningTests Host/DefensiveHardeningTestsMain.cpp)
+target_compile_definitions(SwaraXTDefensiveHardeningTests PRIVATE JUCE_MODAL_LOOPS_PERMITTED=1)
+set(defensive_test_scratch "${CMAKE_BINARY_DIR}/defensive-hardening-scratch")
+set(defensive_test_home "${CMAKE_BINARY_DIR}/defensive-hardening-home")
+file(MAKE_DIRECTORY "${defensive_test_scratch}"
+    "${defensive_test_home}/AppData/Roaming" "${defensive_test_home}/AppData/Local")
+set_property(SOURCE Host/DefensiveHardeningTestsMain.cpp APPEND PROPERTY
+    COMPILE_DEFINITIONS SWARAXT_DEFENSIVE_TEST_ROOT="${defensive_test_scratch}")
+set_tests_properties(SwaraXTDefensiveHardeningTests PROPERTIES
+    WORKING_DIRECTORY "${defensive_test_scratch}"
+    ENVIRONMENT "SWARAXT_DEFENSIVE_TEST_DIR=${defensive_test_scratch};APPDATA=${defensive_test_home}/AppData/Roaming;LOCALAPPDATA=${defensive_test_home}/AppData/Local;USERPROFILE=${defensive_test_home}")
+swaraxt_enable_warnings_as_errors(SwaraXTDefensiveHardeningTests)
+set_tests_properties(SwaraXTDefensiveHardeningTests PROPERTIES TIMEOUT 120 LABELS "headless;defensive-hardening")
+
 add_executable(SwaraXTIR3109BoardTests Architecture/Ir3109BoardTests.cpp)
 target_include_directories(SwaraXTIR3109BoardTests PRIVATE "${CMAKE_SOURCE_DIR}/Source")
 swaraxt_enable_warnings(SwaraXTIR3109BoardTests)
 add_test(NAME SwaraXTIR3109BoardTests COMMAND SwaraXTIR3109BoardTests)
+
+add_executable(SwaraXTCutoffAuthorityTests Filter/CutoffAuthorityTests.cpp)
+target_include_directories(SwaraXTCutoffAuthorityTests PRIVATE "${CMAKE_SOURCE_DIR}/Source")
+swaraxt_enable_warnings(SwaraXTCutoffAuthorityTests)
+swaraxt_enable_warnings_as_errors(SwaraXTCutoffAuthorityTests)
+add_test(NAME SwaraXTCutoffAuthorityTests COMMAND SwaraXTCutoffAuthorityTests)
 
 foreach(solver_target IN ITEMS SwaraXTIR3109SolverTests SwaraXTIR3109SolverBench)
     add_executable(${solver_target} Filter/ProductionSolverTestsMain.cpp)

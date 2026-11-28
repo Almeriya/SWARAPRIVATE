@@ -18,7 +18,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   development-build:
-    if: github.repository == 'RIG-AUDIO/SW2'
+    if: github.repository == 'Almeriya/SWARAPRIVATE'
     runs-on: macos-15-intel
     timeout-minutes: 180
     env:
@@ -38,7 +38,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test "$GITHUB_REPOSITORY" = RIG-AUDIO/SW2
+          test "$GITHUB_REPOSITORY" = Almeriya/SWARAPRIVATE
+          test "$SWARAXT_REPOSITORY_PRIVATE" = false
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
           python3 -m pip install cmake==3.31.6 ninja==1.11.1.4
       - name: Current-SHA Intel preflight and tuning regressions

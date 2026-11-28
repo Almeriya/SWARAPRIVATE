@@ -21,13 +21,30 @@ import urllib.request
 from login_context import run_login
 from policy import (require, hosted_root, owned_path, run_process, compare_public, files_manifest,
                     check_bundle, safe_extract_zip, safe_extract_tar, revision, SEAL, SDK_SHA,
-                    HOST_ARITHMETIC, PRODUCTION_PARITY)
+                    HOST_ARITHMETIC, PRODUCTION_PARITY, REPOSITORY, REPOSITORY_PRIVATE)
 from infrastructure import PublicInfrastructure
 from dependency_overlay import apply as apply_dependency_overlay
 from native_reference import BASELINE_SHA
 
 JUCE_SHA = 'e18f7f506c0b96f2c738a0bcd7fe6467a5005ad8'
 SOURCE = Path(__file__).resolve().parents[2]
+
+
+def require_share_test_cache(cache, universal):
+    """Fail closed on typed BOOL share-test settings. Untyped unused -D vars are not authority."""
+    juce = 'SWARAXT_SHARE_TEST_JUCE:BOOL='
+    production = 'SWARAXT_SHARE_TEST_PRODUCTION:BOOL='
+    if universal:
+        require(juce + 'OFF' in cache and production + 'OFF' in cache,
+                'Universal product builds must not share test objects')
+        require(juce + 'ON' not in cache and production + 'ON' not in cache,
+                'Universal product builds must not share test objects')
+        return False, False
+    require(juce + 'ON' in cache and production + 'ON' in cache,
+            'Apple native tests must share identically configured objects')
+    require(juce + 'OFF' not in cache and production + 'OFF' not in cache,
+            'Apple native tests must share identically configured objects')
+    return True, True
 
 
 def digest(path):
@@ -163,19 +180,32 @@ class Campaign(PublicInfrastructure):
                  '-DCMAKE_OSX_DEPLOYMENT_TARGET=11.0', '-DSWARAXT_JUCE_DIR=' + str(juce),
                  '-DSWARA_BUILD_STANDALONE=OFF', '-DSWARA_BUILD_SKIN_EDITOR=OFF',
                  '-DSWARA_BUILD_TESTS=' + ('OFF' if universal else 'ON'),
-                 '-DSWARAXT_SHARE_TEST_JUCE=OFF', '-DSWARAXT_SHARE_TEST_PRODUCTION=OFF',
+                 # Typed BOOL survives unused-variable retention when SWARA_BUILD_TESTS=OFF
+                 # (Qualification.cmake option() declarations are not loaded then).
+                 '-DSWARAXT_SHARE_TEST_JUCE:BOOL=' + ('OFF' if universal else 'ON'),
+                 '-DSWARAXT_SHARE_TEST_PRODUCTION:BOOL=' + ('OFF' if universal else 'ON'),
                  '-DCMAKE_C_FLAGS=' + ' '.join(flags), '-DCMAKE_CXX_FLAGS=' + ' '.join(flags),
                  '-DCMAKE_OBJCXX_FLAGS=' + ' '.join(flags)])
         cache = (build / 'CMakeCache.txt').read_text()
         for setting in ['SWARA_BUILD_STANDALONE:BOOL=OFF', 'SWARA_BUILD_SKIN_EDITOR:BOOL=OFF']:
             require(setting in cache, 'Qualification invariant: setting in cache')
+        share_juce, share_production = require_share_test_cache(cache, universal)
+        self.report['share_test_juce'] = share_juce
+        self.report['share_test_production'] = share_production
+
         if not universal:
             shutil.copy2(build / 'compile_commands.json', self.root / 'compile-commands.json')
         return build, config
 
     def native_reference(self, juce, config):
-        from native_reference import require_approved_authority
-        return require_approved_authority(SOURCE, self.args.arch, self.args.profile)
+        from native_reference import require_approved_authority, verify_independent_references
+        provenance = verify_independent_references(SOURCE)
+        status = require_approved_authority(
+            SOURCE, self.args.arch, self.args.profile, evidence=provenance)
+        self.report['audio_reference_provenance'] = provenance
+        self.report['audio_reference_status'] = status
+        self.save()
+        return status
 
     def controls(self, flags):
         samples = {'asan-ubsan': [
@@ -320,6 +350,12 @@ class Campaign(PublicInfrastructure):
 
     def regressions(self,build,juce,config):
         """Build and audit the full inventory before running CTest."""
+        graph = subprocess.check_output(
+            ['ninja', '-C', str(build), '-t', 'commands', 'SwaraXTQualificationTests'],
+            text=True, timeout=120)
+        self.report['qualification_ninja_command_count'] = len(
+            [line for line in graph.splitlines() if line.strip()])
+        self.save()
         self.run('build-native-tests', ['cmake', '--build', build, '--target', 'SwaraXTQualificationTests',
                  '--parallel', '2', '--', '-k', '0'], timeout=10800)
         commands = json.loads((build / 'compile_commands.json').read_text())
@@ -536,8 +572,9 @@ def main():
     args = parser.parse_args()
     require(revision(args.source_sha) == os.environ['GITHUB_SHA'], 'Source revision input mismatch')
     revision(args.base_source_sha)
-    require(os.environ.get('GITHUB_REPOSITORY') == 'RIG-AUDIO/SW2' and
-            os.environ.get('SWARAXT_REPOSITORY_PRIVATE') == 'false', 'Public SW2 execution only')
+    require(os.environ.get('GITHUB_REPOSITORY') == REPOSITORY and
+            os.environ.get('SWARAXT_REPOSITORY_PRIVATE') == REPOSITORY_PRIVATE,
+            'Authorized Almeriya/SWARAPRIVATE execution only')
     if args.task == 'gate':
         from gate import evaluate
         root = hosted_root(args.root, SOURCE)

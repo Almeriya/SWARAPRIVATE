@@ -1,7 +1,7 @@
 SWARA XT corresponding source
 
 The package-specific SW2 source revision and URL are appended by the packaging script.
-The 1.3.1 macOS QA pipeline also produces an exact SHA-bound corresponding-source
+The 1.3.3 macOS QA pipeline also produces an exact SHA-bound corresponding-source
 archive containing the main checkout, initialized pinned submodules and JUCE 9.0.1.
 Repository: https://github.com/montronedsp/SWARAXT
 Build instructions: BUILDING.md at that exact revision.

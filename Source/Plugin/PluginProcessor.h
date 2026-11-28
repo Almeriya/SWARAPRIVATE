@@ -41,6 +41,7 @@ class SwaraXtAudioProcessor : public juce::AudioProcessor,
     bool acceptsMidi() const override { return true; }
     bool producesMidi() const override { return true; }
     bool isMidiEffect() const override { return false; }
+    bool isBusesLayoutSupported(const BusesLayout& layouts) const override;
     double getTailLengthSeconds() const override;
 
     int getNumPrograms() override
@@ -55,8 +56,17 @@ class SwaraXtAudioProcessor : public juce::AudioProcessor,
 
     void getStateInformation(juce::MemoryBlock& destData) override;
     void setStateInformation(const void* data, int sizeInBytes) override;
-    enum class RestoreResult { success, defaultTuning, invalid, reentrant, tuningBusy, tuningUnavailable, preparationFailed };
+    enum class RestoreResult {
+        success, defaultTuning, invalid, reentrant, tuningBusy, tuningUnavailable, preparationFailed, incomplete, uncertain
+    };
     RestoreResult lastRestoreResult() const noexcept { return lastRestoreResult_.load(std::memory_order_relaxed); }
+
+    struct RestoreNotification {
+        RestoreResult result = RestoreResult::success;
+        uint64_t revision = 0;
+    };
+    RestoreNotification restoreNotification() const noexcept;
+    void acknowledgeRestoreNotification(RestoreNotification notification) noexcept;
 
     juce::AudioProcessorValueTreeState& getApvts() { return apvts_; }
     const juce::AudioProcessorValueTreeState& getApvts() const { return apvts_; }
@@ -97,6 +107,9 @@ class SwaraXtAudioProcessor : public juce::AudioProcessor,
 
     std::vector<PresetEntry> getPresetEntries() const;
     bool loadPresetEntry(const PresetEntry& entry, juce::String& error);
+    // User preset files are read only up to this size. Host setStateInformation
+    // is a separate, already-bounded buffer and does not use this ceiling.
+    static constexpr juce::int64 maxUserPresetFileBytes = 1024 * 1024;
     bool saveUserPreset(const juce::String& name, bool overwrite, juce::String& error);
     juce::String currentPresetName() const;
     bool currentPresetIsUser() const;
@@ -142,7 +155,7 @@ class SwaraXtAudioProcessor : public juce::AudioProcessor,
     enum class StatePublicationPoint {
         programPublicationLocked, restoreGateLocked, bulkEpochPublished, userPresetFileReady,
         stateReadBeforeLock, writerContended, restoreBeforeTuningPublish,
-        userPresetTemporaryChosen, userPresetTemporaryWritten
+        userPresetTemporaryChosen, userPresetTemporaryWritten, restorePrepared, restoreBeforeSequence
     };
     using StatePublicationHook = void (*)(void*, StatePublicationPoint);
     void setStatePublicationHook(StatePublicationHook hook, void* context) noexcept
@@ -155,8 +168,9 @@ class SwaraXtAudioProcessor : public juce::AudioProcessor,
  private:
     bool loadFactoryPreset(int index);
     void applyFactoryPreset(int index);
-    bool restoreState(juce::ValueTree tree, bool fromPreset, const juce::String& presetName = {},
-                      juce::String* error = nullptr);
+    RestoreResult restoreState(juce::ValueTree tree, bool fromPreset,
+                               const juce::String& presetName = {}, juce::String* error = nullptr);
+    void publishRestoreNotification(uint64_t revision, RestoreResult result) noexcept;
     void beginBulkPublication();
     void endBulkPublication() noexcept;
     void writeStateInformation(juce::MemoryBlock& destData);
@@ -220,12 +234,17 @@ class SwaraXtAudioProcessor : public juce::AudioProcessor,
     std::atomic<bool> requestEngineReset_ { false };
     // Diagnostic only: the last completed restore outcome is not state authority.
     std::atomic<RestoreResult> lastRestoreResult_ { RestoreResult::success };
+    // Each host request has an identity, including requests nested in listeners.
+    static_assert(std::atomic<uint64_t>::is_always_lock_free);
+    static constexpr uint64_t kRestoreRevisionMask = (uint64_t { 1 } << 56) - 1;
+    std::atomic<uint64_t> restoreRequestRevision_ { 0 };
+    std::atomic<uint64_t> restoreNotification_ { 0 };
     std::atomic<bool> sequenceLocked_ { false };
     std::atomic<unsigned> randomNoteRange_ { 36u | (12u << 8) };
     bool isPrepared_ = false;
     bool engineInitialized_ = false;
-    // True after setStateInformation restores a host session; blocks setCurrentProgram
-    // from reloading factory presets until prepareToPlay() completes initialization.
+    // Host program callbacks cannot distinguish selection from reassertion.
+    // An explicit preset load replaces the restored session and clears this guard.
     std::atomic<bool> hostSessionStateRestored_ { false };
     double lastValidHostBpm_ = 120.0;
     juce::String currentUserPresetName_;

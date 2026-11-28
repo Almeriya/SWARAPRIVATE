@@ -23,11 +23,11 @@ import zipfile
 
 from policy import check_bundle, digest, files_manifest, SEAL
 
-VERSION = '1.3.1'
+VERSION = '1.3.3'
 JUCE_SHA = 'e18f7f506c0b96f2c738a0bcd7fe6467a5005ad8'
 FORMATS = ('Swara XT.component', 'Swara XT.vst3')
 PKG_ID = 'com.montronedsp.swaraxt.macosinstaller'
-PACKAGE_ROOT = 'Swara XT 1.3.1 macOS'
+PACKAGE_ROOT = 'Swara XT 1.3.3 macOS'
 
 
 def require(ok, message):
@@ -124,7 +124,7 @@ def copy_documentation(repo, destination, sha):
     source_text = (repo / 'packaging/SOURCE.txt').read_text()
     (destination / 'SOURCE.txt').write_text(
         source_text + '\nQA candidate source revision: ' + sha +
-        '\nCanonical source: https://github.com/RIG-AUDIO/SW2/tree/' + sha +
+        '\nCanonical source: https://github.com/Almeriya/SWARAPRIVATE/tree/' + sha +
         '\nMac JUCE 9.0.1 pinned source: https://github.com/juce-framework/JUCE/tree/' +
         JUCE_SHA + '\nSee the separate complete corresponding-source QA archive.\n')
     require((destination / 'LICENSE.txt').stat().st_size > 5000, 'GPL license missing')

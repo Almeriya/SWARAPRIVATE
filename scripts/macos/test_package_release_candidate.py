@@ -12,7 +12,7 @@ from package_release_candidate import VERSION, FORMATS, PKG_ID, inventory, requi
 
 class MacQaPackagingTests(unittest.TestCase):
     def test_product_constants(self):
-        self.assertEqual(VERSION, '1.3.1')
+        self.assertEqual(VERSION, '1.3.3')
         self.assertEqual(FORMATS, ('Swara XT.component', 'Swara XT.vst3'))
         self.assertEqual(PKG_ID, 'com.montronedsp.swaraxt.macosinstaller')
 

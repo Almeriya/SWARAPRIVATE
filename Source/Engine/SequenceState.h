@@ -6,6 +6,7 @@
 #include <JuceHeader.h>
 
 #include "Engine/FreeCvPitch.h"
+#include "Tuning/TuningTable.h"
 
 #include <algorithm>
 #include <array>
@@ -67,7 +68,7 @@ class SequenceState {
     static_assert(std::atomic<uint32_t>::is_always_lock_free);
 
 #if defined(SWARAXT_ENABLE_SEQUENCE_SNAPSHOT_TESTS)
-    enum class SnapshotPoint { readerAdmitted, writerMidpoint, writerContended };
+    enum class SnapshotPoint { readerAdmitted, writerMidpoint, writerContended, editBeforeCommit };
     using SnapshotHook = void (*)(void*, SnapshotPoint) noexcept;
     void setSnapshotHook(SnapshotHook hook, void* context) noexcept
     {
@@ -80,6 +81,12 @@ class SequenceState {
         beginWrite();
         revision_.store(evenRevision, std::memory_order_relaxed);
         writer_.clear(std::memory_order_release);
+    }
+    // Public test entry to private revise(). Pass an out-of-line mutator so
+    // optimized MSVC cannot prove the publish path unreachable (C4702 /WX).
+    void throwingEditForTests(void (*mutate)(SequenceSnapshot&))
+    {
+        revise(mutate);
     }
 #endif
 
@@ -143,17 +150,8 @@ class SequenceState {
     {
         const int period = view.formalPeriod > 0 ? view.formalPeriod : 1;
         int periodIndex = 0;
-        int inside = degree;
-        if (inside >= 0)
-        {
-            periodIndex = inside / period;
-            inside %= period;
-        }
-        else
-        {
-            periodIndex = -(((-inside) + period - 1) / period);
-            inside = degree - periodIndex * period;
-        }
+        int inside = 0;
+        tuning::splitSignedPeriod(degree, period, periodIndex, inside);
         double cents = static_cast<double>(periodIndex) * view.periodCents;
         if (inside > 0 && view.degreeCount > 0)
         {
@@ -231,9 +229,10 @@ class SequenceState {
                    const ScaleRandomView* scaleView = nullptr)
     {
         juce::ignoreUnused(type); // The production domain contains Type 1 only.
-        auto pattern = snapshot();
         range.lower = juce::jlimit(-NoteRange::extent, 0, range.lower);
         range.upper = juce::jlimit(0, NoteRange::extent, range.upper);
+        revise([&](SequenceSnapshot& pattern)
+        {
         const bool linear = pattern.pitchMode == 1 || pattern.pitchMode == 3;
         const bool scaleMode = pattern.pitchMode == 2;
         // Freeze the root before any step write so mid-pass updates cannot drift.
@@ -303,7 +302,7 @@ class SequenceState {
                 b = static_cast<uint8_t>((b & 0xf0) | random.nextInt(16));
             packed = SequenceSnapshot::pack(a, b);
         }
-        store(pattern);
+        });
     }
 
     void randomize(Randomize kind, juce::Random& random)
@@ -359,35 +358,10 @@ class SequenceState {
 
     void store(const SequenceSnapshot& snapshot, bool notify = true)
     {
-        beginWrite();
-        length_.store(static_cast<uint8_t>(juce::jlimit(1, 16, static_cast<int>(snapshot.length))),
-                      std::memory_order_relaxed);
-        rotation_.store(static_cast<uint8_t>(snapshot.rotation & 0x0f),
-                        std::memory_order_relaxed);
-        grooveTemplate_.store(static_cast<uint8_t>(juce::jlimit(0, 5,
-                                      static_cast<int>(snapshot.grooveTemplate))),
-                              std::memory_order_relaxed);
-        arpPattern_.store(static_cast<uint8_t>(juce::jlimit(0, 15,
-                                  static_cast<int>(snapshot.arpPattern))),
-                          std::memory_order_relaxed);
-        const uint8_t mode = snapshot.pitchMode <= 3 ? snapshot.pitchMode : 1;
-        pitchMode_.store(mode, std::memory_order_relaxed);
-        freePitchReady_.store(snapshot.freePitchReady != 0 ? 1 : 0, std::memory_order_relaxed);
-        scaleReady_.store(snapshot.scaleReady != 0 ? 1 : 0, std::memory_order_relaxed);
-        for (size_t i = 0; i < steps_.size(); ++i)
         {
-            steps_[i].store(snapshot.steps[i], std::memory_order_relaxed);
-            freePitch_[i].store(FreeCvPitch::clampUnits(snapshot.freePitch[i]),
-                                std::memory_order_relaxed);
-            const int degree = juce::jlimit(-kScaleDegreeLimit, kScaleDegreeLimit,
-                                            static_cast<int>(snapshot.scaleDegree[i]));
-            scaleDegree_[i].store(static_cast<int16_t>(degree), std::memory_order_relaxed);
-#if defined(SWARAXT_ENABLE_SEQUENCE_SNAPSHOT_TESTS)
-            if (i == steps_.size() / 2 - 1)
-                snapshotPoint(SnapshotPoint::writerMidpoint);
-#endif
+            WriterGate gate(*this);
+            storeUnlocked(snapshot, true);
         }
-        endWrite();
         if (notify)
             notifyListeners();
     }
@@ -458,10 +432,11 @@ class SequenceState {
     {
         if (! juce::isPositiveAndBelow(index, SequenceSnapshot::kNumSteps))
             return;
-        auto pattern = snapshot();
-        pattern.freePitch[static_cast<size_t>(index)] = FreeCvPitch::clampUnits(units);
-        pattern.freePitchReady = 1;
-        store(pattern);
+        revise([&](SequenceSnapshot& pattern)
+        {
+            pattern.freePitch[static_cast<size_t>(index)] = FreeCvPitch::clampUnits(units);
+            pattern.freePitchReady = 1;
+        });
     }
 
     // First entry into free CV copies the current integer notes. Later
@@ -470,20 +445,22 @@ class SequenceState {
     {
         if (! juce::isPositiveAndBelow(index, SequenceSnapshot::kNumSteps))
             return;
-        auto pattern = snapshot();
-        pattern.scaleDegree[static_cast<size_t>(index)] = static_cast<int16_t>(
-            juce::jlimit(-kScaleDegreeLimit, kScaleDegreeLimit, degree));
-        pattern.scaleReady = 1;
-        store(pattern);
+        revise([&](SequenceSnapshot& pattern)
+        {
+            pattern.scaleDegree[static_cast<size_t>(index)] = static_cast<int16_t>(
+                juce::jlimit(-kScaleDegreeLimit, kScaleDegreeLimit, degree));
+            pattern.scaleReady = 1;
+        });
     }
 
     // midiDegree is optional and used only the first time SCALE is entered.
     // Unmapped notes fall back to degree 0. Packed notes are not rewritten.
     void setPitchMode(uint8_t mode, const int16_t* midiDegree = nullptr, const bool* midiMapped = nullptr)
     {
-        auto pattern = snapshot();
         if (mode > 3)
             return;
+        revise([&](SequenceSnapshot& pattern)
+        {
         const uint8_t next = mode;
         if ((next == 1 || next == 3) && pattern.freePitchReady == 0)
         {
@@ -509,7 +486,7 @@ class SequenceState {
             pattern.scaleReady = 1;
         }
         pattern.pitchMode = next;
-        store(pattern);
+        });
     }
 
     void addListener(Listener* listener)
@@ -650,6 +627,85 @@ class SequenceState {
     }
 #endif
 
+    struct WriterGate
+    {
+        SequenceState& state;
+        explicit WriterGate(SequenceState& owner) noexcept : state(owner) { state.beginWrite(); }
+        ~WriterGate() noexcept { state.endWrite(); }
+        WriterGate(const WriterGate&) = delete;
+        WriterGate& operator=(const WriterGate&) = delete;
+    };
+
+    void loadUnlocked(SequenceSnapshot& snapshot) const noexcept
+    {
+        snapshot.length = length_.load(std::memory_order_relaxed);
+        snapshot.rotation = rotation_.load(std::memory_order_relaxed);
+        snapshot.grooveTemplate = grooveTemplate_.load(std::memory_order_relaxed);
+        snapshot.arpPattern = arpPattern_.load(std::memory_order_acquire);
+        snapshot.pitchMode = pitchMode_.load(std::memory_order_relaxed);
+        snapshot.freePitchReady = freePitchReady_.load(std::memory_order_relaxed);
+        snapshot.scaleReady = scaleReady_.load(std::memory_order_relaxed);
+        for (size_t i = 0; i < steps_.size(); ++i)
+        {
+            snapshot.steps[i] = steps_[i].load(std::memory_order_relaxed);
+            snapshot.freePitch[i] = freePitch_[i].load(std::memory_order_relaxed);
+            snapshot.scaleDegree[i] = scaleDegree_[i].load(std::memory_order_relaxed);
+        }
+    }
+
+    void storeUnlocked(const SequenceSnapshot& snapshot, bool writeArp) noexcept
+    {
+        length_.store(static_cast<uint8_t>(juce::jlimit(1, 16, static_cast<int>(snapshot.length))),
+                      std::memory_order_relaxed);
+        rotation_.store(static_cast<uint8_t>(snapshot.rotation & 0x0f),
+                        std::memory_order_relaxed);
+        grooveTemplate_.store(static_cast<uint8_t>(juce::jlimit(0, 5,
+                                      static_cast<int>(snapshot.grooveTemplate))),
+                              std::memory_order_relaxed);
+        if (writeArp)
+            arpPattern_.store(static_cast<uint8_t>(juce::jlimit(0, 15,
+                                      static_cast<int>(snapshot.arpPattern))),
+                              std::memory_order_relaxed);
+        const uint8_t mode = snapshot.pitchMode <= 3 ? snapshot.pitchMode : 1;
+        pitchMode_.store(mode, std::memory_order_relaxed);
+        freePitchReady_.store(snapshot.freePitchReady != 0 ? 1 : 0, std::memory_order_relaxed);
+        scaleReady_.store(snapshot.scaleReady != 0 ? 1 : 0, std::memory_order_relaxed);
+        for (size_t i = 0; i < steps_.size(); ++i)
+        {
+            steps_[i].store(snapshot.steps[i], std::memory_order_relaxed);
+            freePitch_[i].store(FreeCvPitch::clampUnits(snapshot.freePitch[i]),
+                                std::memory_order_relaxed);
+            const int degree = juce::jlimit(-kScaleDegreeLimit, kScaleDegreeLimit,
+                                            static_cast<int>(snapshot.scaleDegree[i]));
+            scaleDegree_[i].store(static_cast<int16_t>(degree), std::memory_order_relaxed);
+#if defined(SWARAXT_ENABLE_SEQUENCE_SNAPSHOT_TESTS)
+            if (i == steps_.size() / 2 - 1)
+                snapshotPoint(SnapshotPoint::writerMidpoint);
+#endif
+        }
+    }
+
+    // Sequencer payload transaction. Holds the writer gate, reads the latest
+    // non-ARP fields, applies the mutator to a local snapshot, then publishes
+    // without writing arpPattern_. Host ARP remains an independent atomic.
+    // If the mutator throws, the gate is released and the sequence is unchanged.
+    template <typename Mutator>
+    void revise(Mutator&& mutate, bool notify = true)
+    {
+        {
+            WriterGate gate(*this);
+            SequenceSnapshot draft;
+            loadUnlocked(draft);
+#if defined(SWARAXT_ENABLE_SEQUENCE_SNAPSHOT_TESTS)
+            snapshotPoint(SnapshotPoint::editBeforeCommit);
+#endif
+            mutate(draft);
+            storeUnlocked(draft, false);
+        }
+        if (notify)
+            notifyListeners();
+    }
+
     template <typename Atomic, typename Value>
     void updateAtomic(Atomic& target, Value value, bool notify = true)
     {
@@ -690,14 +746,22 @@ class SequenceState {
         if (! manager->isThisTheMessageThread())
         {
             hub->asyncSchedules.fetch_add(1, std::memory_order_relaxed);
-            if (
+            try
+            {
+                if (
 #if defined(SWARAXT_ENABLE_SEQUENCE_NOTIFICATION_TESTS)
-                hub->rejectPosts.load() ||
+                    hub->rejectPosts.load() ||
 #endif
-                ! juce::MessageManager::callAsync(
-                    [hub] { SequenceState::drainListeners(hub); }))
+                    ! juce::MessageManager::callAsync(
+                        [hub] { SequenceState::drainListeners(hub); }))
+                {
+                    hub->armed.store(false, std::memory_order_seq_cst);
+                }
+            }
+            catch (...)
             {
                 hub->armed.store(false, std::memory_order_seq_cst);
+                throw;
             }
             return;
         }
@@ -709,6 +773,7 @@ class SequenceState {
         for (;;)
         {
             hub->pending.store(false, std::memory_order_seq_cst);
+            try
             {
                 const juce::ScopedLock lock(hub->lock);
                 if (hub->alive.load(std::memory_order_acquire))
@@ -720,6 +785,13 @@ class SequenceState {
                         listener.sequenceStateChanged();
                     });
                 }
+            }
+            catch (...)
+            {
+                // Retain failed delivery for the next publication, as with a rejected post.
+                hub->pending.store(true, std::memory_order_seq_cst);
+                hub->armed.store(false, std::memory_order_seq_cst);
+                throw;
             }
             hub->asyncDeliveries.fetch_add(1, std::memory_order_relaxed);
 #if defined(SWARAXT_ENABLE_SEQUENCE_NOTIFICATION_TESTS)

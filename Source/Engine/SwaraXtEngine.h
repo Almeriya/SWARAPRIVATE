@@ -166,6 +166,7 @@ class SwaraXtEngine {
                  bool adoptControls = true,
                  const SequenceSnapshot* sequence = nullptr,
                  uint32_t revision = 0, bool resetRequested = false);
+    void releaseMidiInput(const juce::MidiBuffer& midi) noexcept;
     void clearSequencerMidiOutput() noexcept;
     bool loadTuningBytes(const uint8_t* data, size_t size);
     bool loadBuiltinTuning(int index);
@@ -208,6 +209,7 @@ class SwaraXtEngine {
 #endif
 
     SwaraXtFilter& filter() noexcept { return filter_; }
+    float knobCutoffTrimBytesForTests() const noexcept { return knobCutoffTrimBytes_; }
     const SwaraXtFilter& filter() const noexcept { return filter_; }
 
     // Experimental native-rate Shruthi Dual-SVF. Default off: Classic.
@@ -283,6 +285,7 @@ class SwaraXtEngine {
     uint16_t randomStateForTests() const noexcept { return random_.state(); }
     uint8_t advanceRandomForTests() noexcept { return random_.GetByte(); }
     uint64_t hostClockEventCountForTests() const noexcept { return hostClockEventCount_; }
+    double hostTickPpqForTests(uint64_t tick) const noexcept { return hostTickPpq(tick); }
     int lastHostClockOffsetForTests() const noexcept { return lastHostClockOffset_; }
 #if SWARAXT_ENABLE_IDLE_CPU_TESTS
     bool dormantForTests() const noexcept { return dormant_; }
@@ -350,6 +353,8 @@ class SwaraXtEngine {
     bool voiceRequiresAudio() const noexcept;
     bool patchRequiresAudioSource() const noexcept;
     void dispatchMidi(const PendingMidi& event);
+    void applyEmergencySilence() noexcept;
+    int emergencyDcResetRemaining_ = 0;
     void collectMidiEvents(juce::MidiBufferIterator& cursor, const juce::MidiBufferIterator& end,
                            int startSample, int numSamples);
     void updateFilterFromShruthi();
@@ -370,6 +375,8 @@ class SwaraXtEngine {
     void prepareHostClock(const HostTransportSnapshot& transport, int numSamples) noexcept;
     void resetHostState() noexcept;
     double hostTickPpq(uint64_t tick) const noexcept;
+    uint64_t hostClockTickAtPpq(double ppq) const noexcept;
+    uint32_t currentHostTimingKey() const noexcept;
     void installSequencerMidiTap() noexcept;
     static void sequencerNoteOnTap(void* context, uint8_t note, uint8_t velocity, uint8_t external) noexcept;
     static void sequencerNoteOffTap(void* context, uint8_t note) noexcept;
@@ -562,6 +569,7 @@ class SwaraXtEngine {
     int postMixerRampSamples_ = 1;
     int postMixerSamplesRemaining_ = 0;
     float filterCutoffHz_ = 8000.0f;
+    float knobCutoffTrimBytes_ = 0.0f;
     float filterResonance_ = 0.2f;
     float filterKeyTrack_ = 0.5f;
     int midiChannel_ = 1;
@@ -577,6 +585,7 @@ class SwaraXtEngine {
     int lfoDivision_[2] { 3, 3 };
     bool sequencerHostSync_ = false;
     int sequencerSwing_ = 0;
+    uint32_t hostTimingKey_ = 0xffffffffu;
     bool hostTransportWasPlaying_ = false;
     bool hostClockNeedsAlignment_ = true;
     uint64_t nextHostClockTick_ = 0;

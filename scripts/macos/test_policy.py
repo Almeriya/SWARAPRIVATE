@@ -26,7 +26,7 @@ class PublicPolicyTests(unittest.TestCase):
     def test_hosted_public_runner_boundary(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            env = {'GITHUB_ACTIONS': 'true', 'GITHUB_REPOSITORY': 'RIG-AUDIO/SW2',
+            env = {'GITHUB_ACTIONS': 'true', 'GITHUB_REPOSITORY': 'Almeriya/SWARAPRIVATE',
                    'SWARAXT_REPOSITORY_PRIVATE': 'false', 'RUNNER_ENVIRONMENT': 'github-hosted',
                    'RUNNER_TEMP': str(root)}
             with patch.dict(os.environ, env, clear=True):

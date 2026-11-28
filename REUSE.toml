@@ -5,6 +5,8 @@ version = 1
 # dual-copyright notices) and only fills missing copyright or license tags.
 [[annotations]]
 path = [
+  "AGENTS.md",
+  ".cursor/**",
   ".clang-format",
   ".clang-tidy",
   ".editorconfig",

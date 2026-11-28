@@ -1,8 +1,11 @@
 # Building Swara XT
 
-The macOS product metadata targets **1.3.1 (unqualified release candidate)**.
-The historical 1.3.0 qualification evidence remains unchanged. The latest
-published release remains [1.2.3](https://github.com/montronedsp/SWARAXT/releases/tag/v1.2.3).
+The macOS product metadata targets **1.3.3 (engineering candidate, unqualified)**.
+The historical 1.3.1 and 1.3.0 qualification evidence remains unchanged. Hosted
+CI continues to require Xcode 16.4; this local Intel Mac currently provides
+Xcode 15.2 and is not a substitute for that identity. The latest published
+Windows/Linux release is [1.3.3](https://github.com/montronedsp/SWARAXT/releases/tag/v1.3.3).
+No public macOS archive is authorized from this branch.
 
 ## Requirements
 

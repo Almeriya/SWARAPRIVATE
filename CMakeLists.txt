@@ -7,7 +7,7 @@ if(APPLE)
         "macOS architectures")
 endif()
 
-project(SwaraXT VERSION 1.3.1 LANGUAGES C CXX)
+project(SwaraXT VERSION 1.3.3 LANGUAGES C CXX)
 if(APPLE)
     enable_language(OBJC OBJCXX)
 endif()

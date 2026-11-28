@@ -85,7 +85,7 @@ add_test(NAME SwaraXTCurrentControl_parity COMMAND SwaraXTCurrentMixerTests pari
 # Build JUCE once per compatible module configuration within this build tree.
 # Application/engine TUs retain all original target-specific definitions.
 # Libraries are never reused across build trees, compilers or instrumentation.
-if(SWARAXT_SHARE_TEST_JUCE AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
+if(SWARAXT_SHARE_TEST_JUCE AND (CMAKE_SYSTEM_NAME STREQUAL "Linux" OR APPLE))
     get_property(console_targets GLOBAL PROPERTY SWARAXT_CONSOLE_TEST_TARGETS)
     foreach(target IN LISTS console_targets)
         get_target_property(definitions ${target} COMPILE_DEFINITIONS)
@@ -116,7 +116,7 @@ endif()
 # matches. Keep every test-specific definition in the signature, including
 # diagnostic taps and test modes. Generated JUCE headers have the same module
 # includes; their ProjectInfo names are not used by production sources.
-if(SWARAXT_SHARE_TEST_PRODUCTION AND SWARAXT_SHARE_TEST_JUCE AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
+if(SWARAXT_SHARE_TEST_PRODUCTION AND SWARAXT_SHARE_TEST_JUCE AND (CMAKE_SYSTEM_NAME STREQUAL "Linux" OR APPLE))
     get_property(console_targets GLOBAL PROPERTY SWARAXT_CONSOLE_TEST_TARGETS)
     set(groups "")
     foreach(target IN LISTS console_targets)

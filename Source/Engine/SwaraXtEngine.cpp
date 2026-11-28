@@ -3,6 +3,7 @@
 
 #include "Engine/SwaraXtEngine.h"
 #include "Engine/Filter/ShruthiSvfSection2Control.h"
+#include "Engine/GrooveClock.h"
 #include "BuiltinTunings.h"
 
 #include <JuceHeader.h>
@@ -22,6 +23,18 @@ namespace {
 
 constexpr double kLfoBeatsPerCycle[] { 0.125, 0.25, 0.5, 1.0, 2.0, 4.0, 8.0, 16.0 };
 
+int hostPatternLength(const shruthi::SequencerSettings& settings) noexcept
+{
+    const int length = settings.pattern_size;
+    return length >= 1 && length <= 16 ? length : 16;
+}
+
+int hostGrooveTemplate(const shruthi::SequencerSettings& settings) noexcept
+{
+    const int groove = settings.seq_groove_template;
+    return groove >= 0 && groove <= 5 ? groove : 0;
+}
+
 bool sameSequencePayload(const SequenceSnapshot& a, const SequenceSnapshot& b) noexcept
 {
     // ARP pattern is an independent live control, applied separately below.
@@ -31,15 +44,58 @@ bool sameSequencePayload(const SequenceSnapshot& a, const SequenceSnapshot& b) n
         && a.steps == b.steps && a.freePitch == b.freePitch && a.scaleDegree == b.scaleDegree;
 }
 
+bool isTransientPerformanceController(uint8_t controller) noexcept
+{
+    switch (controller)
+    {
+        case midi::kHoldPedal:
+        case midi::kModulationWheelMsb:
+        case midi::kModulationWheelJoystickMsb:
+        case midi::kFootPedalMsb:
+        case midi::kVolume:
+        case midi::kAssignableCcA:
+        case midi::kAssignableCcB:
+        case midi::kAssignableCcC:
+        case midi::kAssignableCcD:
+            return true;
+        default:
+            return false;
+    }
+}
+
 constexpr float kMinimumPanelCutoffHz = 10.0f;
 constexpr float kMaximumPanelCutoffHz = 20000.0f;
 
-uint8_t shruthiCutoffCode(float cutoffHz)
+// Panel cutoff in firmware patch units (semitones, 127 = 20 kHz), before rounding.
+// One evaluation feeds both the integer code and the Classic trim so they cannot diverge.
+float shruthiCutoffCodeUnrounded(float cutoffHz)
 {
-    const float bounded = juce::jlimit(kMinimumPanelCutoffHz, kMaximumPanelCutoffHz, cutoffHz);
+    const float safe = std::isfinite(cutoffHz) ? cutoffHz : kMinimumPanelCutoffHz;
+    const float bounded = juce::jlimit(kMinimumPanelCutoffHz, kMaximumPanelCutoffHz, safe);
     const float semitonesBelowMaximum = 12.0f * std::log2(bounded / kMaximumPanelCutoffHz);
+    return 127.0f + semitonesBelowMaximum;
+}
+
+uint8_t shruthiCutoffCodeFromUnrounded(float unrounded)
+{
     return static_cast<uint8_t>(juce::jlimit(0, 127,
-        static_cast<int>(std::lround(127.0f + semitonesBelowMaximum))));
+        static_cast<int>(std::lround(unrounded))));
+}
+
+// patch.filter_cutoff holds a 7-bit semitone code, so a continuous host parameter would
+// otherwise move the Classic filter in 100-cent steps. The part of the knob that the code
+// cannot represent is returned in firmware CV bytes (24 per octave, so 2 per semitone,
+// within +-1) and added after the firmware has produced its byte; matrix, envelope and LFO
+// modulation keep their firmware resolution. A value within kKnobGridSnapSemitones of a
+// code returns exactly 0, so patches that store the cutoff as a code (every imported
+// Shruthi patch) render exactly as before.
+constexpr float kKnobGridSnapSemitones = 0.002f; // 0.2 cent
+
+float shruthiCutoffTrimBytesFromUnrounded(float unrounded)
+{
+    const float code = juce::jlimit(0.0f, 127.0f, unrounded);
+    const float remainder = code - std::round(code);
+    return std::abs(remainder) < kKnobGridSnapSemitones ? 0.0f : 2.0f * remainder;
 }
 
 // The 0.7 Hz safety pole reaches 1e-7 from unity in about 3.66 seconds. That is
@@ -241,13 +297,25 @@ void SwaraXtEngine::applyParameters(const SequenceSnapshot& sequence, uint32_t r
     else
         setPostMixerTarget(postMixerLinear);
     filterCutoffHz_ = ParameterCache::load(parameterCache_->filterCutoff);
+    const float unroundedCutoff = shruthiCutoffCodeUnrounded(filterCutoffHz_);
+    knobCutoffTrimBytes_ = shruthiCutoffTrimBytesFromUnrounded(unroundedCutoff);
     filterResonance_ = ParameterCache::load(parameterCache_->filterResonance);
     filterKeyTrack_ = ParameterCache::load(parameterCache_->filterKeyTracking);
     auto* patch = part_.mutable_patch();
-    patch->filter_cutoff = shruthiCutoffCode(filterCutoffHz_);
+    patch->filter_cutoff = shruthiCutoffCodeFromUnrounded(unroundedCutoff);
     patch->filter_resonance = static_cast<uint8_t>(juce::jlimit(0, 63,
         static_cast<int>(std::lround(filterResonance_ * 63.0f))));
-    midiChannel_ = juce::jlimit(0, 16, ParameterCache::loadInt(parameterCache_->midiChannel));
+    const int nextMidiChannel = juce::jlimit(0, 16,
+        ParameterCache::loadInt(parameterCache_->midiChannel));
+    if (nextMidiChannel != midiChannel_ && (part_.num_notes() != 0 || part_.latched()))
+    {
+        // Note Off and pedal-up from the old input channel will now be rejected.
+        // End only those input-owned lifetimes; leave the host audio/board
+        // buffers intact. Generated MIDI has its own saved original channel
+        // and is released through the existing sequencer scheduler.
+        part_.AllSoundOff();
+    }
+    midiChannel_ = nextMidiChannel;
     midiInputMode_ = juce::jlimit(0, 2, ParameterCache::loadInt(parameterCache_->midiInputTuning));
     // The tuning latch precedes parameter adoption; install this admitted mode
     // before clocks or MIDI can generate a note in the current callback.
@@ -374,6 +442,7 @@ void SwaraXtEngine::resetHostState() noexcept
     blockPpqPerSample_ = 0.0;
     hostClockEventCount_ = 0;
     lastHostClockOffset_ = -1;
+    hostTimingKey_ = 0xffffffffu;
 }
 
 void SwaraXtEngine::updateHostLfoRates(double bpm) noexcept
@@ -393,17 +462,62 @@ void SwaraXtEngine::updateHostLfoRates(double bpm) noexcept
 
 double SwaraXtEngine::hostTickPpq(uint64_t tick) const noexcept
 {
-    const uint64_t stepTicks = juce::jmax<uint64_t>(1, part_.clock_ticks_per_step());
-    const uint64_t pairTicks = stepTicks * 2;
-    const uint64_t pair = tick / pairTicks;
-    const uint64_t position = tick % pairTicks;
-    const double stepBeats = static_cast<double>(stepTicks) / 24.0;
-    const double swing = static_cast<double>(sequencerSwing_) / 127.0 * 0.45;
-    const double pairStart = static_cast<double>(pair) * stepBeats * 2.0;
-    if (position < stepTicks)
-        return pairStart + static_cast<double>(position) / 24.0 * (1.0 + swing);
-    return pairStart + stepBeats * (1.0 + swing)
-        + static_cast<double>(position - stepTicks) / 24.0 * (1.0 - swing);
+    // Past the host PPQ contract the mapping stays finite and strictly after
+    // every in-range position, so the inverse search cannot walk tick by tick.
+    if (tick > (uint64_t{1} << 42))
+        return std::numeric_limits<double>::max();
+
+    const auto& settings = part_.sequencer_settings();
+    const int stepTicks = static_cast<int>(juce::jmax<uint64_t>(1, part_.clock_ticks_per_step()));
+    const int length = hostPatternLength(settings);
+    const int groove = hostGrooveTemplate(settings);
+    const int amount = juce::jlimit(0, 127, sequencerSwing_);
+    const auto units = groove::unitsBeforeTick(tick, length, stepTicks, groove, amount);
+    return static_cast<double>(units) / 3072.0;
+}
+
+uint64_t SwaraXtEngine::hostClockTickAtPpq(double ppq) const noexcept
+{
+    if (!(ppq > 0.0))
+        return 0;
+
+    // Every groove scale is in [96, 159] / 128. The widened constants keep the
+    // bracket valid if a division rounds, and the search is at most 64 probes.
+    constexpr double kMinScale = 0.74;
+    constexpr double kMaxScale = 1.25;
+    const double straightTicks = ppq * 24.0;
+    uint64_t low = 0;
+    const double lowEstimate = straightTicks / kMaxScale;
+    if (lowEstimate > 4.0 && std::isfinite(lowEstimate))
+        low = static_cast<uint64_t>(lowEstimate) - 4;
+
+    double highEstimate = straightTicks / kMinScale + 4.0;
+    constexpr double kMaxTick = static_cast<double>(uint64_t{1} << 42);
+    if (! std::isfinite(highEstimate) || highEstimate > kMaxTick)
+        highEstimate = kMaxTick;
+    uint64_t high = static_cast<uint64_t>(std::ceil(highEstimate));
+    if (high < low)
+        high = low;
+
+    for (int iteration = 0; iteration < 64 && low < high; ++iteration)
+    {
+        const uint64_t mid = low + (high - low) / 2;
+        if (hostTickPpq(mid) < ppq)
+            low = mid + 1;
+        else
+            high = mid;
+    }
+    return low;
+}
+
+uint32_t SwaraXtEngine::currentHostTimingKey() const noexcept
+{
+    const auto& settings = part_.sequencer_settings();
+    const uint32_t amount = static_cast<uint32_t>(sequencerSwing_) & 0xffu;
+    const uint32_t groove = static_cast<uint32_t>(settings.seq_groove_template) & 0xffu;
+    const uint32_t length = static_cast<uint32_t>(settings.pattern_size) & 0xffu;
+    const uint32_t division = static_cast<uint32_t>(part_.clock_ticks_per_step()) & 0xffu;
+    return amount | (groove << 8) | (length << 16) | (division << 24);
 }
 
 void SwaraXtEngine::prepareHostClock(const HostTransportSnapshot& transport, int numSamples) noexcept
@@ -429,7 +543,7 @@ void SwaraXtEngine::prepareHostClock(const HostTransportSnapshot& transport, int
 
     if (! transport.isPlaying)
     {
-        if (hostTransportWasPlaying_)
+        if (hostTransportWasPlaying_ || part_.running())
             part_.Stop(false, true);
         // Collapse pending Offs into this block and release anything still held.
         // A lead-scheduled Off can otherwise outlive the stop callback while the
@@ -441,16 +555,24 @@ void SwaraXtEngine::prepareHostClock(const HostTransportSnapshot& transport, int
         return;
     }
 
+    const uint32_t timingKey = currentHostTimingKey();
+    const bool timingChanged = timingKey != hostTimingKey_;
+    if (timingChanged)
+    {
+        // A groove, amount, length, or division edit remaps absolute tick
+        // times. Realign to the current PPQ instead of emitting the backlog.
+        hostTimingKey_ = timingKey;
+        hostClockNeedsAlignment_ = true;
+    }
+
     if (! hostTransportWasPlaying_ || discontinuity || hostClockNeedsAlignment_)
     {
         // Alignment clears firmware-generated identities. Retire their external
-        // notes first so a seek cannot orphan the previous step's release.
-        if (discontinuity)
+        // notes first so a seek or a groove remap cannot orphan the previous
+        // step's release. The opening start has no held sequencer notes.
+        if (discontinuity || (timingChanged && hostTransportWasPlaying_))
             forceFlushSequencerMidiRelease(hostBlockOrigin_);
-        nextHostClockTick_ = static_cast<uint64_t>(
-            juce::jmax(0.0, std::floor(blockStartPpq_ * 24.0)));
-        while (hostTickPpq(nextHostClockTick_) < blockStartPpq_ - tolerance)
-            ++nextHostClockTick_;
+        nextHostClockTick_ = hostClockTickAtPpq(blockStartPpq_ - tolerance);
         part_.AlignExternalClock(nextHostClockTick_);
         hostClockNeedsAlignment_ = false;
     }
@@ -703,8 +825,10 @@ void SwaraXtEngine::updateFilterFromShruthi()
     const double extraOctaves = p.matrixCutoffOctaves;
     // Transport every native byte directly to the board CV domain; the panel-Hz
     // clamp is not authority for hardware cutoff reconstruction.
+    // The knob's sub-semitone remainder joins the firmware byte here (Classic path only;
+    // the Dual SVF consumes the unmodified byte).
     p.boardCutoffCvVolts = std::clamp((static_cast<double>(voice.cutoff())
-        + 24.0 * extraOctaves) * (5.0 / 255.0), 0.0, 5.0);
+        + 24.0 * extraOctaves + static_cast<double>(knobCutoffTrimBytes_)) * (5.0 / 255.0), 0.0, 5.0);
     filter_.setParams(p);
     experimentalSvf_.setFirmwareCutoff(voice.cutoff());
     experimentalSvf_.setFirmwareResonance(voice.resonance());
@@ -751,13 +875,18 @@ void SwaraXtEngine::dispatchMidi(const PendingMidi& event)
     else if (statusHi == 0xB0)
     {
         if (event.data1 == 120)
+        {
             midiDispatcher_.AllSoundOff(channel);
+            applyEmergencySilence();
+        }
         else if (event.data1 == 123)
             midiDispatcher_.AllNotesOff(channel);
         else if (event.data1 == 121)
             midiDispatcher_.ResetAllControllers(channel);
-        else
+        else if (isTransientPerformanceController(event.data1))
             midiDispatcher_.ControlChange(channel, event.data1, event.data2);
+        // Mapped patch/system CC and NRPN stay with APVTS. Firmware must not
+        // keep hidden persistent octave/raga/patch writes.
     }
     else if (statusHi == 0xE0)
     {
@@ -771,6 +900,48 @@ void SwaraXtEngine::dispatchMidi(const PendingMidi& event)
     else if (statusHi == 0xA0)
     {
         midiDispatcher_.Aftertouch(channel, event.data1, event.data2);
+    }
+}
+
+void SwaraXtEngine::applyEmergencySilence() noexcept
+{
+    // Voice::Kill() stops new energy at the VCA. Already-rendered native
+    // samples, the Dual SVF matching delay, and series board delay/feedback
+    // can still reach the host. Clear only those panic-owned stores. A recorded
+    // loop is kept; its playback stays stopped until the play control changes.
+    // Leave classic/experimental filter memory and the SRC kernel so a later
+    // Note On in this block is not a wholesale engine reset.
+    dualOutputDelay_.reset();
+    internalQueue_.silenceLookahead();
+    boardProcessor_.silenceSoundingState(activeBoard_.effect);
+    postDacFilter_.reset();
+    // The 0.7 Hz output DC blocker would otherwise take hundreds of
+    // milliseconds to forget the last sounding sample.
+    dcBlocker_.reset();
+    // The samples still inside the SRC window are the pre-panic note. Let them
+    // drain without charging the 0.7 Hz blocker, or that blocker rings for
+    // hundreds of milliseconds after the window is gone.
+    const double host = hostSampleRate_ > 1.0 ? hostSampleRate_ : 48000.0;
+    const double native = static_cast<double>(kOutputLatencyNativeSamples + kAudioBlockSize + 256);
+    emergencyDcResetRemaining_ = static_cast<int>(std::ceil(native * host / kInternalSampleRate)) + 8;
+}
+
+void SwaraXtEngine::releaseMidiInput(const juce::MidiBuffer& midi) noexcept
+{
+    for (const auto metadata : midi)
+    {
+        if (metadata.numBytes != 3)
+            continue;
+        PendingMidi event;
+        event.status = metadata.data[0];
+        event.data1 = static_cast<uint8_t>(metadata.data[1] & 0x7f);
+        event.data2 = static_cast<uint8_t>(metadata.data[2] & 0x7f);
+        const auto type = event.status & 0xf0;
+        const bool release = type == 0x80 || (type == 0x90 && event.data2 == 0)
+            || (type == 0xb0 && ((event.data1 == 64 && event.data2 < 64)
+                || event.data1 == 120 || event.data1 == 121 || event.data1 == 123));
+        if (release)
+            dispatchMidi(event);
     }
 }
 
@@ -1309,12 +1480,23 @@ void SwaraXtEngine::process(const juce::MidiBuffer& midi,
         if (sequencerHostSync_ && transport.isPlaying)
         {
             const double samplePpq = blockStartPpq_ + blockPpqPerSample_ * static_cast<double>(i);
-            while (hostTickPpq(nextHostClockTick_) <= samplePpq + blockPpqPerSample_ * 0.5)
+            const double duePpq = samplePpq + blockPpqPerSample_ * 0.5;
+            int dispatched = 0;
+            while (dispatched < 2 && hostTickPpq(nextHostClockTick_) <= duePpq)
             {
                 part_.Clock(false);
                 ++hostClockEventCount_;
                 lastHostClockOffset_ = i;
                 ++nextHostClockTick_;
+                ++dispatched;
+            }
+            // Valid tempos cannot place a third clock inside one sample.
+            // If the mapping is nevertheless still behind, jump to the tick
+            // that belongs at this position instead of catching up one by one.
+            if (hostTickPpq(nextHostClockTick_) <= duePpq)
+            {
+                nextHostClockTick_ = hostClockTickAtPpq(duePpq);
+                part_.AlignExternalClock(nextHostClockTick_);
             }
             updateDormantWakeState();
         }
@@ -1340,8 +1522,8 @@ void SwaraXtEngine::process(const juce::MidiBuffer& midi,
 
         float sample = 0.0f;
         if (internalQueue_.size() >= internalQueue_.minimumReadableSize())
-            sample = dcBlocker_.process(internalQueue_.readInterpolated());
-        else if (drainingToDormant_)
+            sample = internalQueue_.readInterpolated();
+        else if (drainingToDormant_ && emergencyDcResetRemaining_ == 0)
         {
             dcDrainingToDormant_ = true;
             sample = dcBlocker_.process(0.0f);
@@ -1355,6 +1537,18 @@ void SwaraXtEngine::process(const juce::MidiBuffer& midi,
                 || std::abs(sample) <= kDcSettlementThreshold
                 || dcDrainSamples_ >= maxDcDrainSamples_)
                 enterDormant();
+        }
+
+        // Panic drain: emit the SRC residue raw and keep the blocker empty.
+        // Feeding that residue through the 0.7 Hz filter would re-charge it.
+        if (emergencyDcResetRemaining_ > 0)
+        {
+            dcBlocker_.reset();
+            --emergencyDcResetRemaining_;
+        }
+        else if (! drainingToDormant_ || ! dcDrainingToDormant_)
+        {
+            sample = dcBlocker_.process(sample);
         }
 
         if (! std::isfinite(sample))

@@ -1,6 +1,16 @@
 # Changelog
 
-## 1.3.1 — macOS release candidate (unqualified)
+## 1.3.3 — macOS surgical port (engineering, unqualified)
+
+- Align macOS product metadata with the official SWARA XT 1.3.3 Windows/Linux
+  release (`v1.3.3` / `6ea598e47fb0347d23ffa538a64b02318187a7ed`).
+- Preserve Universal AU/VST3 identity (`com.MontroneDSP.SwaraXT`, `MnTr` /
+  `SwXT`), JUCE 9.0.1, macOS 11.0, Objective-C/Objective-C++ integration, and
+  the Apple floating-parser / host-arithmetic exceptions.
+- Native audio-reference authority remains REVIEW_REQUIRED. This is not a
+  public macOS release.
+
+## 1.3.1 — macOS release candidate (unqualified, historical)
 
 - Align active macOS AU/VST3 and source-provenance version to 1.3.1.
 - Prepare Universal arm64/x86_64 QA ZIP and system installer PKG, plus

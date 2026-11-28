@@ -1,12 +1,11 @@
 # SPDX-FileCopyrightText: 2026 MontroneDSP
 # SPDX-License-Identifier: GPL-3.0-or-later
 name: macOS AU and VST3 qualification
-run-name: SWARA XT 1.3.1 macOS ${{ github.sha }}
+run-name: SWARA XT 1.3.3 macOS ${{ github.sha }}
 'on':
   push:
     branches:
-    - ci/macos-130-qualification
-    - release/macos-131-qualification
+    - port/swaraxt-133-macos-surgical
   workflow_dispatch:
     inputs:
       mode:
@@ -22,18 +21,18 @@ run-name: SWARA XT 1.3.1 macOS ${{ github.sha }}
 permissions:
   contents: read
 concurrency:
-  group: sw2-macos-${{ github.ref }}-${{ github.sha }}
+  group: swaraprivate-macos-${{ github.ref }}-${{ github.sha }}
   cancel-in-progress: false
 jobs:
   preflight-arm64:
-    if: github.repository == 'RIG-AUDIO/SW2'
+    if: github.repository == 'Almeriya/SWARAPRIVATE'
     runs-on: macos-15
     timeout-minutes: 20
     env:
       DEVELOPER_DIR: /Applications/Xcode_16.4.app/Contents/Developer
       REVIEWED_SHA: ${{ github.sha }}
       BASE_SHA: 5e7b967db0b52f773f382217a72c6c0c3ff6b8f7
-      EXECUTION_MODE: ${{ inputs.mode || 'full' }}
+      EXECUTION_MODE: ${{ inputs.mode || 'build' }}
       SWARAXT_REPOSITORY_PRIVATE: ${{ github.event.repository.private }}
       TARGET_ARCH: arm64
       PYTHONDONTWRITEBYTECODE: '1'
@@ -50,7 +49,7 @@ jobs:
       shell: bash
       run: 'set -euo pipefail
 
-        test "$GITHUB_REPOSITORY" = RIG-AUDIO/SW2
+        test "$GITHUB_REPOSITORY" = Almeriya/SWARAPRIVATE
 
         test "$SWARAXT_REPOSITORY_PRIVATE" = false
 
@@ -88,14 +87,14 @@ jobs:
         if-no-files-found: error
         retention-days: 7
   preflight-intel:
-    if: github.repository == 'RIG-AUDIO/SW2'
+    if: github.repository == 'Almeriya/SWARAPRIVATE'
     runs-on: macos-15-intel
     timeout-minutes: 20
     env:
       DEVELOPER_DIR: /Applications/Xcode_16.4.app/Contents/Developer
       REVIEWED_SHA: ${{ github.sha }}
       BASE_SHA: 5e7b967db0b52f773f382217a72c6c0c3ff6b8f7
-      EXECUTION_MODE: ${{ inputs.mode || 'full' }}
+      EXECUTION_MODE: ${{ inputs.mode || 'build' }}
       SWARAXT_REPOSITORY_PRIVATE: ${{ github.event.repository.private }}
       TARGET_ARCH: x86_64
       PYTHONDONTWRITEBYTECODE: '1'
@@ -112,7 +111,7 @@ jobs:
       shell: bash
       run: 'set -euo pipefail
 
-        test "$GITHUB_REPOSITORY" = RIG-AUDIO/SW2
+        test "$GITHUB_REPOSITORY" = Almeriya/SWARAPRIVATE
 
         test "$SWARAXT_REPOSITORY_PRIVATE" = false
 
@@ -150,7 +149,7 @@ jobs:
         if-no-files-found: error
         retention-days: 7
   universal:
-    if: (inputs.mode || 'full') != 'preflight'
+    if: github.repository == 'Almeriya/SWARAPRIVATE' && (inputs.mode || 'build') != 'preflight'
     needs:
     - preflight-intel
     runs-on: macos-15-intel
@@ -159,7 +158,7 @@ jobs:
       DEVELOPER_DIR: /Applications/Xcode_16.4.app/Contents/Developer
       REVIEWED_SHA: ${{ github.sha }}
       BASE_SHA: 5e7b967db0b52f773f382217a72c6c0c3ff6b8f7
-      EXECUTION_MODE: ${{ inputs.mode || 'full' }}
+      EXECUTION_MODE: ${{ inputs.mode || 'build' }}
       SWARAXT_REPOSITORY_PRIVATE: ${{ github.event.repository.private }}
       PYTHONDONTWRITEBYTECODE: '1'
     steps:
@@ -175,7 +174,7 @@ jobs:
       shell: bash
       run: 'set -euo pipefail
 
-        test "$GITHUB_REPOSITORY" = RIG-AUDIO/SW2
+        test "$GITHUB_REPOSITORY" = Almeriya/SWARAPRIVATE
 
         test "$SWARAXT_REPOSITORY_PRIVATE" = false
 
@@ -190,7 +189,7 @@ jobs:
         "$BASE_SHA" --mode "$EXECUTION_MODE" --arch x86_64 --root "$RUNNER_TEMP/swara-universal"
       env:
         RUNNER_ENVIRONMENT: ${{ runner.environment }}
-    - name: Build and validate unnotarized 1.3.1 ZIP/PKG and corresponding source
+    - name: Build and validate unnotarized 1.3.3 ZIP/PKG and corresponding source
       shell: bash
       run: >-
         python3 scripts/macos/package_release_candidate.py
@@ -198,7 +197,7 @@ jobs:
         --candidate-dir "$RUNNER_TEMP/swara-universal/unsigned-universal"
         --juce-dir "$RUNNER_TEMP/swara-universal/JUCE"
         --source-sha "$REVIEWED_SHA"
-        --version 1.3.1
+        --version 1.3.3
         --output-dir "$RUNNER_TEMP/swara-universal/packages"
     - name: Public unnotarized QA distribution packages
       if: always()
@@ -206,9 +205,9 @@ jobs:
       with:
         name: macos-qa-packages-${{ github.sha }}-${{ github.run_attempt }}
         path: |
-          ${{ runner.temp }}/swara-universal/packages/SwaraXT-macOS-Universal-v1.3.1.zip
-          ${{ runner.temp }}/swara-universal/packages/SwaraXT-macOS-Universal-v1.3.1.pkg
-          ${{ runner.temp }}/swara-universal/packages/SwaraXT-macOS-Universal-v1.3.1-corresponding-source.tar.gz
+          ${{ runner.temp }}/swara-universal/packages/SwaraXT-macOS-Universal-v1.3.3.zip
+          ${{ runner.temp }}/swara-universal/packages/SwaraXT-macOS-Universal-v1.3.3.pkg
+          ${{ runner.temp }}/swara-universal/packages/SwaraXT-macOS-Universal-v1.3.3-corresponding-source.tar.gz
           ${{ runner.temp }}/swara-universal/packages/SHA256SUMS
           ${{ runner.temp }}/swara-universal/packages/package-qa-manifest.json
         if-no-files-found: warn
@@ -246,7 +245,7 @@ jobs:
         if-no-files-found: error
         retention-days: 7
   smoke:
-    if: (inputs.mode || 'full') == 'smoke' || (inputs.mode || 'full') == 'full'
+    if: github.repository == 'Almeriya/SWARAPRIVATE' && ((inputs.mode || 'build') == 'smoke' || (inputs.mode || 'build') == 'full')
     needs:
     - universal
     strategy:
@@ -264,7 +263,7 @@ jobs:
       DEVELOPER_DIR: /Applications/Xcode_16.4.app/Contents/Developer
       REVIEWED_SHA: ${{ github.sha }}
       BASE_SHA: 5e7b967db0b52f773f382217a72c6c0c3ff6b8f7
-      EXECUTION_MODE: ${{ inputs.mode || 'full' }}
+      EXECUTION_MODE: ${{ inputs.mode || 'build' }}
       SWARAXT_REPOSITORY_PRIVATE: ${{ github.event.repository.private }}
       TARGET_ARCH: ${{ matrix.platform.arch }}
       PYTHONDONTWRITEBYTECODE: '1'
@@ -281,7 +280,7 @@ jobs:
       shell: bash
       run: 'set -euo pipefail
 
-        test "$GITHUB_REPOSITORY" = RIG-AUDIO/SW2
+        test "$GITHUB_REPOSITORY" = Almeriya/SWARAPRIVATE
 
         test "$SWARAXT_REPOSITORY_PRIVATE" = false
 
@@ -332,7 +331,7 @@ jobs:
         if-no-files-found: error
         retention-days: 7
   native:
-    if: (inputs.mode || 'full') == 'full'
+    if: github.repository == 'Almeriya/SWARAPRIVATE' && (inputs.mode || 'build') == 'full'
     needs:
     - preflight-arm64
     - preflight-intel
@@ -354,7 +353,7 @@ jobs:
       DEVELOPER_DIR: /Applications/Xcode_16.4.app/Contents/Developer
       REVIEWED_SHA: ${{ github.sha }}
       BASE_SHA: 5e7b967db0b52f773f382217a72c6c0c3ff6b8f7
-      EXECUTION_MODE: ${{ inputs.mode || 'full' }}
+      EXECUTION_MODE: ${{ inputs.mode || 'build' }}
       SWARAXT_REPOSITORY_PRIVATE: ${{ github.event.repository.private }}
       TARGET_ARCH: ${{ matrix.platform.arch }}
       TARGET_PROFILE: ${{ matrix.profile }}
@@ -372,7 +371,7 @@ jobs:
       shell: bash
       run: 'set -euo pipefail
 
-        test "$GITHUB_REPOSITORY" = RIG-AUDIO/SW2
+        test "$GITHUB_REPOSITORY" = Almeriya/SWARAPRIVATE
 
         test "$SWARAXT_REPOSITORY_PRIVATE" = false
 
@@ -423,7 +422,7 @@ jobs:
         if-no-files-found: error
         retention-days: 7
   qualification-gate:
-    if: always()
+    if: always() && github.repository == 'Almeriya/SWARAPRIVATE'
     needs:
     - preflight-arm64
     - preflight-intel
@@ -436,7 +435,7 @@ jobs:
       DEVELOPER_DIR: /Applications/Xcode_16.4.app/Contents/Developer
       REVIEWED_SHA: ${{ github.sha }}
       BASE_SHA: 5e7b967db0b52f773f382217a72c6c0c3ff6b8f7
-      EXECUTION_MODE: ${{ inputs.mode || 'full' }}
+      EXECUTION_MODE: ${{ inputs.mode || 'build' }}
       SWARAXT_REPOSITORY_PRIVATE: ${{ github.event.repository.private }}
       PREFLIGHT_RESULT: ${{ needs.preflight-arm64.result == 'success' && needs.preflight-intel.result
         == 'success' && 'success' || 'failure' }}
@@ -449,7 +448,7 @@ jobs:
       shell: bash
       run: 'set -euo pipefail
 
-        test "$GITHUB_REPOSITORY" = RIG-AUDIO/SW2
+        test "$GITHUB_REPOSITORY" = Almeriya/SWARAPRIVATE
 
         test "$SWARAXT_REPOSITORY_PRIVATE" = false
 
