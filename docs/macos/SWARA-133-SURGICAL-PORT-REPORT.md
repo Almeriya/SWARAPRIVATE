@@ -673,11 +673,35 @@ Peak/RMS vs provenance JSON (original F/G/I PCM bytes are not in this tree, so f
 | G | 0.674146 / 0.276321 | 0.673574 / 0.283832 |
 | I | 0.399926 / 0.078158 | 0.398669 / 0.078109 |
 
-### ARM64 same-SHA PCM comparison — **PENDING**
+### ARM64 same-SHA PCM comparison — bitwise **PASS** (not qualification)
 
-Earlier ARM64 Q23 at `59a6686` printed the same F/G/I hashes, but that is a different source revision and is only Q23. Float32 equality vs this Intel capture is **NOT_RUN** until the matching ARM64 job on `0b4d546` completes.
+| Item | Value |
+| --- | --- |
+| Run | https://github.com/Almeriya/SWARAPRIVATE/actions/runs/46064526245 |
+| Decision | `TARGETED_NATIVE_AUDIO_CAPTURE_NOT_QUALIFIED` |
+| Source SHA | `09e4c2a8aa2556142acb76985fa5569b3a94f995` (docs-only vs Intel `0b4d546`; `Source/` and tests identical) |
+| Arch / profile | arm64 Debug, `macos-15`, macOS 15.8.2 |
+| Toolchain | Xcode 16.4 (16F6), Apple Clang 17.0.0, JUCE `e18f7f506c0b96f2c738a0bcd7fe6467a5005ad8` |
+| CTest | exit 8; only F/G/I vs the stale Mac header |
 
-Dispatched after this report: workflow `macos-build-recovery.yml`, `suite=classic-pcm`, `architecture=arm64`, `profile=Debug`, ref `0b4d546cbb33382a889a589d370e987f84517ca7`. Result **PENDING**. Do not treat diagnostic completion as qualification.
+`scripts/macos/parity_metrics.py` on the eight Intel vs ARM64 `.f32` dumps:
+
+| Metric | Result |
+| --- | --- |
+| Exact PCM equality | **all eight files bitwise identical** |
+| Divergent samples | 0 |
+| First divergent sample | none |
+| Max abs / RMS / relative error | 0 |
+| Max / p95 / p99 ULP | 0 |
+| Q23 differing samples | 0 |
+| PCM SHA-256 | identical per case (table above) |
+| Non-finite samples | 0 |
+| Onset | identical (A 433, B 410, C 382, F 429, G 310, I 431, D 328, J silent) |
+| `reference_admission` | still `REVIEW_REQUIRED` |
+
+Historical Intel/ARM64 Classic hash splits do **not** apply to 1.3.3 Classic. Architecture-specific Classic tables are not justified by this capture pair. Intel and ARM64 maps stay logically separate; they currently hold the same empty admission state.
+
+The ARM64 Q23 lines match Intel and public 1.3.3 F/G/I. Diagnostic completion is not qualification.
 
 ### Cause — not an ARM64-only DSP bug
 
@@ -710,22 +734,22 @@ A shared Intel/ARM64 Q23 is **not** architecture-specific authority and is **not
 
 ### Golden-authority recommendation — **REVIEW_REQUIRED**
 
-Do **not** copy Intel hashes into `CurrentAudioGoldens.h` from this capture. The independent next admission package is:
+Do **not** copy candidate hashes into `CurrentAudioGoldens.h` from these captures. The admission package is now complete except owner approval:
 
-1. Source `0b4d546cbb33382a889a589d370e987f84517ca7` (this Intel capture) plus matching ARM64 PCM on the same SHA.
-2. Provenance: Phase3 JSON for A/B/C/D/J bitwise identity; public 1.3.3 `Tests/Parity/CurrentAudioGoldens.h` for F/G/I.
+1. Intel source `0b4d546`; ARM64 source `09e4c2a` (report-only delta).
+2. Provenance: Phase3 JSON for A/B/C/D/J bitwise identity; public 1.3.3 header for F/G/I.
 3. Original expected: Phase3 F/G/I hashes above.
 4. Current Intel PCM SHA-256 table above.
-5. Current ARM64 PCM: **PENDING**.
-6–8. First divergence vs Phase3 F/G/I PCM **NOT_RUN** (bytes absent); vs ARM64 **PENDING**. DSP analysis: fractional Classic trim as above.
+5. Current ARM64 PCM: **bitwise identical** to Intel (run 46064526245).
+6–8. Intel vs ARM64 first divergence: none. vs Phase3 F/G/I PCM bytes: **NOT_RUN** (not in-tree). DSP: 1.3.3 Classic fractional knob trim.
 9. Intentional 1.3.3 behavior; Mac header lagged the public product.
-10. Architecture-specific Classic tables are **not** justified by Q23 alone. Keep Intel and ARM64 maps logically separate until same-SHA float32 comparison. If ARM64 PCM equals Intel PCM, owner may admit the **public 1.3.3** F/G/I hashes (not a candidate self-hash) into the Mac protected header.
+10. Distinct architecture-specific Classic references are **not** justified. Owner may admit the **public 1.3.3** F/G/I hashes (`7cad43fd9155360d` / `b583834c32a65866` / `ac2c238b499d0be4`) into the Mac protected header. That is a 1.3.3 source-parity update, not a candidate self-hash.
 
-`native_reference.py` stays empty. No DSP correction is proposed.
+`native_reference.py` stays empty. No DSP correction is proposed. Header not changed in this session.
 
 ### Remaining qualification blockers
 
-1. Same-SHA ARM64 Classic PCM vs Intel — **PENDING**.
+1. Same-SHA ARM64 Classic PCM vs Intel — **PASS** (bitwise; not qualification).
 2. Owner admission of public 1.3.3 F/G/I goldens into the Mac header — **REVIEW_REQUIRED**.
 3. Restore completion in Release / asan-ubsan / tsan — **NOT_RUN**.
 4. Native full-inventory timeouts — **INCOMPLETE**.
