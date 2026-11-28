@@ -40,6 +40,8 @@ _ALLOWED_META = {
     'Tests/Dormancy/DualSvfDormancyTestsMain.cpp',
     'Tests/Sequencer/WorkflowTestsMain.cpp',
     'Tests/Sequencer/PlaybackRegressionTestsMain.cpp',
+    # Official 1.3.3 Classic F/G/I hashes; not candidate-generated goldens.
+    'Tests/Parity/CurrentAudioGoldens.h',
     'AGENTS.md',
     '.cursor/rules/macos-engineering.mdc',
     '.cursor/rules/ci-no-polling.mdc',
@@ -256,6 +258,15 @@ def compare_source_133(source, checkout_sha, base_sha, git_tree, original_base,
     require("inputs.suite == 'classic-pcm'" in recovery_workflow
             and '--classic-pcm-capture' in recovery_workflow,
             'Recovery workflow must dispatch Classic PCM capture without golden admission')
+    require("inputs.suite == 'audio-parity'" in recovery_workflow
+            and recovery_workflow.count('--classic-pcm-capture') == 1,
+            'Recovery workflow must dispatch uninstrumented Classic audio parity')
+    goldens = (source / 'Tests/Parity/CurrentAudioGoldens.h').read_text()
+    require('0x7cad43fd9155360dull' in goldens
+            and '0xb583834c32a65866ull' in goldens
+            and '0xac2c238b499d0be4ull' in goldens
+            and '0x0099139bef0f1690ull' not in goldens,
+            'Classic F/G/I must match official public 1.3.3, not Phase3')
     ci_text = (source / 'scripts/macos/ci.py').read_text()
     require("'-DSWARAXT_SHARE_TEST_JUCE=' + ('OFF' if universal else 'ON')" in ci_text
             and "CMAKE_SYSTEM_NAME STREQUAL \"Linux\" OR APPLE" in

@@ -247,7 +247,7 @@
     "Tests/Filter/DualSvfSection2TestsMain.cpp": "59a37d98f4cf1f41e1e27008bf5f5c966a61fce2",
     "Tests/Filter/DualSvfIntegrationAuditMain.cpp": "a9a4cab9dd087e040d84b668d242821ce340f09a",
     "Tests/avrlib_hd/UpperRegisterOscillatorTestsMain.cpp": "fc702fb3cb38b6ccd04d0adff822326606d9191b",
-    "Tests/Parity/CurrentAudioGoldens.h": "6bd4da7c2292a3a62aee6e6478da402d4c5815da"
+    "Tests/Parity/CurrentAudioGoldens.h": "6ddd3aa0b143ab65acf7e8a962d798015fd1dcc0"
   },
   "removed_source": {
     "Source/Engine/Filter/Circuit/ActiveLoadPole.h": "845cb031bd6bd6b2de390828c8e31a31ae300510",

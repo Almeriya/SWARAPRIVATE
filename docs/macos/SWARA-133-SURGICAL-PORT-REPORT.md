@@ -755,3 +755,23 @@ Do **not** copy candidate hashes into `CurrentAudioGoldens.h` from these capture
 4. Native full-inventory timeouts — **INCOMPLETE**.
 5. Full eight-profile matrix — **not dispatched**.
 6. PR #1 unmerged.
+
+---
+
+## Amendment — owner-authorized Classic F/G/I 1.3.3 hash restoration
+
+Owner explicitly authorized restoring the three official public 1.3.3 Classic hashes. This is source-parity with `montronedsp/SWARAXT` `v1.3.3` (`6ea598e47fb0347d23ffa538a64b02318187a7ed`), not candidate self-admission.
+
+| Case | Phase3 (obsolete Mac header) | Official 1.3.3 / authorized |
+| --- | --- | --- |
+| F low resonance | `0099139bef0f1690` | `7cad43fd9155360d` |
+| G high resonance | `1ac4a6fabf9a3da5` | `b583834c32a65866` |
+| I normal envelope | `8bed59407b8e5da6` | `ac2c238b499d0be4` |
+
+`Tests/Parity/CurrentAudioGoldens.h` is now **byte-identical** to public 1.3.3 (blob `6ddd3aa0b143ab65acf7e8a962d798015fd1dcc0`). No other Classic/Integrated entries, sample counts, or names changed. Production `Source/` unchanged. `native_reference.py` unchanged and still fail-closed (`REVIEW_REQUIRED`).
+
+Intel [46062372695](https://github.com/Almeriya/SWARAPRIVATE/actions/runs/46062372695) and ARM64 [46064526245](https://github.com/Almeriya/SWARAPRIVATE/actions/runs/46064526245) Classic float32 captures are bitwise identical (0 divergent samples, 0 ULP, 0 Q23). Phase3 hashes are obsolete because 1.3.3 Classic cutoff includes `knobCutoffTrimBytes_`.
+
+Source profile: protected pin updated from Phase3 blob `6bd4da7…` (also the 1.3.1 baseline) to the public 1.3.3 blob. Arbitrary golden rewrites still fail `protected Mac test/golden mismatch` / `golden rewritten`. Independent native audio-reference admission remains **REVIEW_REQUIRED**.
+
+Focused uninstrumented `SwaraXTAudioParityTests` Debug dispatches (not `--classic-pcm-capture`): **PENDING**. Full matrix **not dispatched**. PR #1 unmerged.
