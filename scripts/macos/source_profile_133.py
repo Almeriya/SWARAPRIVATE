@@ -285,11 +285,12 @@ def compare_source_133(source, checkout_sha, base_sha, git_tree, original_base,
             'Classic F/G/I must match official public 1.3.3, not Phase3')
     ci_text = (source / 'scripts/macos/ci.py').read_text()
     require("'-DSWARAXT_SHARE_TEST_JUCE:BOOL=' + ('OFF' if universal else 'ON')" in ci_text
-            and "SWARAXT_SHARE_TEST_JUCE:BOOL=ON" in ci_text
+            and "'-DSWARAXT_SHARE_TEST_PRODUCTION:BOOL=' + ('OFF' if universal else 'ON')" in ci_text
             and 'require_share_test_cache' in ci_text
+            and 'Universal product builds must not share test objects' in ci_text
             and "CMAKE_SYSTEM_NAME STREQUAL \"Linux\" OR APPLE" in
             (source / 'Tests/Qualification.cmake').read_text(),
-            'Apple native tests must share identically configured objects')
+            'Apple native/universal share-test BOOL typing and cache checks missing')
     workflow = (source / '.github/workflows/macos-qualification.yml').read_text()
     policy_text = (source / 'scripts/macos/policy.py').read_text()
     require("github.repository == 'Almeriya/SWARAPRIVATE'" in workflow
