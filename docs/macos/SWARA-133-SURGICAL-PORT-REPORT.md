@@ -782,3 +782,11 @@ Focused uninstrumented `SwaraXTAudioParityTests` Debug (not `--classic-pcm-captu
 | arm64 Debug, macOS 15.8.2 | [46100889871](https://github.com/Almeriya/SWARAPRIVATE/actions/runs/46100889871) | `TARGETED_NATIVE_TEST_PASS_NOT_QUALIFIED` | exit 0, 1/1 |
 
 Both printed all eight official 1.3.3 Classic Q23 hashes (A/B/C/F/G/I/D/J). No `FAIL:` lines. Capture flag off (`classic_pcm_files: []`). Independent `native_reference.py` admission remains **REVIEW_REQUIRED**. Restore Release/sanitizers **NOT_RUN**. Full matrix **not dispatched**. PR #1 unmerged.
+
+---
+
+## Amendment — Debug Classic closed; Release restore dispatched
+
+Push-triggered `macos-qualification.yml` at `f8c739593dc367770b210d9aa9cc76bff001972f` ([46103822351](https://github.com/Almeriya/SWARAPRIVATE/actions/runs/46103822351)): preflight ARM64/Intel **PASS**, universal **PASS**, smoke/native **skipped** (`mode=build`). That is `BUILD_PASS_UNQUALIFIED`, not native qualification. REUSE remains failing and is **out of scope**.
+
+Next sequenced focused probe (not the eight-profile matrix): ARM64 Debug restore already **PASS**; Intel Debug restore already **PASS**; Classic Debug AudioParity already **PASS**. Dispatch ARM64 **Release** restore-completion (`suite=restore-completion`) once. Result **PENDING**.
